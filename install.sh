@@ -6,6 +6,7 @@ clean_modules() {
   depth=1
   while true ; do
     toDel=$( find . -maxdepth $depth -type d -name node_modules )
+    echo $toDel
     if [[ "$toDel" == '' ]] ; then return 0 ; fi
     rm -rf $toDel
     depth=$(( depth + 1 ))
