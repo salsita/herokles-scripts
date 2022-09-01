@@ -66,7 +66,7 @@ fi
 if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
   $buildToolCmd herokles:pack
 else
-  zip -r product.zip .
+  zip --symlinks --r product.zip .
 fi
 
 aws s3 cp product.zip s3://${BUILD_AWS_S3_BUCKET}/${GITHUB_RUN_ID}/

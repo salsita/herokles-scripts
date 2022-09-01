@@ -2,7 +2,11 @@
 
 set -euo pipefail
 
-ENV=${1:=$ENV}
+if [ ! -z ${RSYSLOG_CONFIG+x} ] ; then
+  echo "$RSYSLOG_CONFIG" > /etc/log_files.yml
+  remote_syslog &
+  exec 2>&1 > /var/log/app.log
+fi
 
 mkdir -p ~/.aws
 
