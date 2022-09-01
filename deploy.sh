@@ -38,7 +38,7 @@ echo "Unzipping product.zip."
 unzip product.zip >/dev/null
 rm -rf product.zip
 
-ls -la /dev
+ls -la /dev /var/log/nginx
 
 echo "Starting the app."
 if [[ -f ./scripts/herokles-run.sh ]] ; then
