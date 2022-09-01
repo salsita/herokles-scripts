@@ -15,6 +15,7 @@ clean_modules() {
 
 ENV=$1
 
+echo "Configuring aws cli."
 mkdir -p ~/.aws
 
 cat > ~/.aws/config <<eoco
@@ -29,6 +30,7 @@ aws_secret_access_key = $BUILD_AWS_SECRET_ACCESS_KEY
 region = $BUILD_AWS_REGION
 eocre
 
+echo "Getting environment variables."
 JSON="$( aws ssm get-parameters --name ${PROJECT}-${ENV} | jq -r '.Parameters | .[] | .Value' )"
 for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
   export $key="$( echo "$JSON" | jq -r .$key )"
@@ -38,36 +40,45 @@ installCmd=
 buildToolCmd=
 
 if [[ -f yarn.lock ]] ; then
+  echo "Using Yarn."
   installCmd="yarn --frozen-lockfile"
   buildToolCmd=yarn
 else
+  echo "Using NPM."
   installCmd="npm ci"
   buildToolCmd="npm run"
 fi
 
 if jq -e '.scripts."herokles:preinstall"' package.json >/dev/null ; then
+  echo "Running $buildToolCmd herokles:preinstall."
   $buildToolCmd herokles:preinstall
 fi
 
+echo "Running $installCmd"
 $installCmd
 
 if jq -e '.scripts."herokles:build"' package.json >/dev/null ; then
+  echo "Running $buildToolCmd herokles:build."
   $buildToolCmd herokles:build
 fi
 
 if jq -e '.scripts."herokles:postbuild"' package.json >/dev/null ; then
+  echo "Running $buildToolCmd herokles:postbuild."
   $buildToolCmd herokles:postbuild
 fi
 
 if jq -e '.scripts."herokles:prodinstall"' package.json >/dev/null ; then
+  echo "Cleaning up all node_modules and running $buildToolCmd herokles:prodinstall."
   clean_modules
   $buildToolCmd herokles:prodinstall
 fi
 
 if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
+  echo "Running $buildToolCmd herokles:pack."
   $buildToolCmd herokles:pack
 else
   zip --symlinks --r product.zip .
 fi
 
-aws s3 cp product.zip s3://${BUILD_AWS_S3_BUCKET}/${GITHUB_RUN_ID}/
+echo "Uploading build to S3."
+aws s3 cp product.zip s3://${BUILD_AWS_S3_BUCKET}/${GITHUB_RUN_ID}/ >/dev/null
