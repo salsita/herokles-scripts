@@ -3,8 +3,8 @@
 set -euo pipefail
 
 echo "Setting up logging."
-if [ ! -z ${RSYSLOG_CONFIG+x} ] ; then
-  echo "$RSYSLOG_CONFIG" > /etc/log_files.yml
+if [ ! -z ${PAPERTRAIL_BASE64+x} ] ; then
+  echo "$PAPERTRAIL_BASE64" | base64 -d > /etc/log_files.yml
   exec 2>&1 > /var/log/app.log
   remote_syslog &
   tail -f /var/log/app.log &
