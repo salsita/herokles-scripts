@@ -3,7 +3,7 @@
 set -euo pipefail
 
 touch /var/log/app.log
-#exec 2>&1 >( tee -a /var/log/app.log )
+exec 2>&1 >( tee -a /var/log/app.log )
 
 echo "Setting up logging."
 if [ ! -z ${PAPERTRAIL_BASE64+x} ] ; then
@@ -38,8 +38,6 @@ aws s3 cp s3://${BUILD_AWS_S3_BUCKET}/${GITHUB_RUN_ID}/product.zip .
 echo "Unzipping product.zip."
 unzip product.zip >/dev/null
 rm -rf product.zip
-
-ls -la /dev /var/log/nginx
 
 echo "Starting the app."
 if [[ -f ./scripts/herokles-run.sh ]] ; then
