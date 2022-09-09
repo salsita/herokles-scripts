@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -xeuo pipefail
 
 touch /var/log/app.log
 exec 2>&1 >( tee -a /var/log/app.log )
