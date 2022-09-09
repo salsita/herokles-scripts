@@ -3,11 +3,11 @@
 set -euo pipefail
 
 echo "Setting up logging."
+exec 2>&1 > /var/log/app.log
+tail -f /var/log/app.log &
 if [ ! -z ${PAPERTRAIL_BASE64+x} ] ; then
-  echo "$PAPERTRAIL_BASE64" | base64 -d > /etc/log_files.yml
-  exec 2>&1 > /var/log/app.log
+  echo "${PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
   remote_syslog &
-  tail -f /var/log/app.log &
 fi
 
 echo "Configuring aws cli."
