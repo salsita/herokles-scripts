@@ -1,9 +1,8 @@
 #!/bin/bash
 
-set -xeuo pipefail
+set -euo pipefail
 
-touch /var/log/app.log
-exec 2>&1 >( tee -a /var/log/app.log )
+exec > >( tee -a /var/log/app.log )
 
 echo "Setting up logging."
 if [ ! -z ${PAPERTRAIL_BASE64+x} ] ; then
