@@ -13,6 +13,11 @@ clean_modules() {
   done
 }
 
+function installHelm {
+  curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 -o helm-installer
+  bash helm-installer --version v3.8.1
+}
+
 ENV=$1
 
 echo "Configuring aws cli."
@@ -31,6 +36,10 @@ region = $BUILD_AWS_REGION
 eocre
 
 echo "Getting environment variables."
+if [[ $ENV == prs ]] ; then
+  export ENV=pr-${PR_NUM}
+  # TODO copy into new env vars if missing, run custom scripts
+fi
 JSON="$( aws ssm get-parameters --name ${PROJECT}-${ENV} | jq -r '.Parameters | .[] | .Value' )"
 for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
   export $key="$( echo "$JSON" | jq -r .$key )"
@@ -82,3 +91,15 @@ fi
 
 echo "Uploading build to S3."
 aws s3 cp product.zip s3://${BUILD_AWS_S3_BUCKET}/${GITHUB_RUN_ID}/ >/dev/null
+
+echo "Setting up kubectl and heml"
+installHelm
+mkdir -p ~/.kube
+echo "$KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
+
+echo "Install Helm deployment"
+helm upgrade --install --wait --timeout 15m1s \
+  ${PROJECT}-${ENV} \
+  herokles/helm \
+  --set ENV=$ENV \
+  --set GITHUB_RUN_ID=$GITHUB_RUN_ID
