@@ -38,9 +38,22 @@ eocre
 echo "Getting environment variables."
 if [[ $ENV == prs ]] ; then
   export ENV=pr-${PR_NUM}
-  # TODO copy into new env vars if missing, run custom scripts
 fi
-JSON="$( aws ssm get-parameters --name ${PROJECT}-${ENV} | jq -r '.Parameters | .[] | .Value' )"
+
+JSON=
+JSON_FULL=$( aws ssm get-parameters --name ${PROJECT}-${ENV} | jq -r '.Parameters | .[] | .Value' )
+if [[ ! -z $( echo "$JSON_FULL" | aws ssm get-parameters --name ${PROJECT}-${ENV} | jq -r '.InvalidParameters | .[]' ) ]] && [[ $ENV == pr-${PR_NUM} ]] ; then
+  echo "New PR deployment, copying env vars from the template."
+  JSON=$( aws ssm get-parameters --name ${PROJECT}-prs | jq -r '.Parameters | .[] | .Value' )
+  if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
+    source ./herokles/set-custom-pr-envs.sh
+  fi
+  aws ssm put-parameter --name ${PROJECT}-${ENV} --value "$JSON"
+else
+  echo "Environment variables for ${PROJECT}-${ENV} not found."
+  exit 1
+fi
+
 for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
   export $key="$( echo "$JSON" | jq -r .$key )"
 done
