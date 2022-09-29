@@ -42,6 +42,7 @@ fi
 
 JSON=
 JSON_FULL=$( aws ssm get-parameters --name ${PROJECT}-${ENV} )
+
 if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
   if [[ $ENV == pr-${PR_NUM} ]] ; then
     echo "New PR deployment, copying env vars from the template."
