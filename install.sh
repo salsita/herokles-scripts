@@ -53,6 +53,7 @@ if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
   else
     echo "Environment variables for ${PROJECT}-${ENV} not found."
     exit 1
+  fi
 else
   JSON=$( echo "$FULL_JSON" | jq -r '.Parameters | .[] | .Value' )
 fi
