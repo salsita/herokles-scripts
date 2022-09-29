@@ -41,8 +41,8 @@ if [[ $ENV == prs ]] ; then
 fi
 
 JSON=
-JSON_FULL=$( aws ssm get-parameters --name ${PROJECT}-${ENV} | jq -r '.Parameters | .[] | .Value' )
-if [[ ! -z $( echo "$JSON_FULL" | aws ssm get-parameters --name ${PROJECT}-${ENV} | jq -r '.InvalidParameters | .[]' ) ]] && [[ $ENV == pr-${PR_NUM} ]] ; then
+JSON_FULL=$( aws ssm get-parameters --name ${PROJECT}-${ENV} )
+if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] && [[ $ENV == pr-${PR_NUM} ]] ; then
   echo "New PR deployment, copying env vars from the template."
   JSON=$( aws ssm get-parameters --name ${PROJECT}-prs | jq -r '.Parameters | .[] | .Value' )
   if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
