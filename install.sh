@@ -42,16 +42,19 @@ fi
 
 JSON=
 JSON_FULL=$( aws ssm get-parameters --name ${PROJECT}-${ENV} )
-if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] && [[ $ENV == pr-${PR_NUM} ]] ; then
-  echo "New PR deployment, copying env vars from the template."
-  JSON=$( aws ssm get-parameters --name ${PROJECT}-prs | jq -r '.Parameters | .[] | .Value' )
-  if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
-    source ./herokles/set-custom-pr-envs.sh
-  fi
-  aws ssm put-parameter --type String --name ${PROJECT}-${ENV} --value "$JSON"
+if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+  if [[ $ENV == pr-${PR_NUM} ]] ; then
+    echo "New PR deployment, copying env vars from the template."
+    JSON=$( aws ssm get-parameters --name ${PROJECT}-prs | jq -r '.Parameters | .[] | .Value' )
+    if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
+      source ./herokles/set-custom-pr-envs.sh
+    fi
+    aws ssm put-parameter --type String --name ${PROJECT}-${ENV} --value "$JSON"
+  else
+    echo "Environment variables for ${PROJECT}-${ENV} not found."
+    exit 1
 else
-  echo "Environment variables for ${PROJECT}-${ENV} not found."
-  exit 1
+  JSON=$( echo "$FULL_JSON" | jq -r '.Parameters | .[] | .Value' )
 fi
 
 for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
