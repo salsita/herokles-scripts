@@ -48,7 +48,7 @@ if [[ ! -z $( echo "$JSON_FULL" | aws ssm get-parameters --name ${PROJECT}-${ENV
   if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
     source ./herokles/set-custom-pr-envs.sh
   fi
-  aws ssm put-parameter --name ${PROJECT}-${ENV} --value "$JSON"
+  aws ssm put-parameter --type string --name ${PROJECT}-${ENV} --value "$JSON"
 else
   echo "Environment variables for ${PROJECT}-${ENV} not found."
   exit 1
