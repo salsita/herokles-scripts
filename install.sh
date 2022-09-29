@@ -115,4 +115,6 @@ helm upgrade --install --wait --timeout 15m1s \
   ${PROJECT}-${ENV} \
   herokles/helm \
   --set ENV=$ENV \
-  --set GITHUB_RUN_ID=$GITHUB_RUN_ID
+  --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
+  --set BRANCH=$BRANCH \
+  --set SHA=$SHA
