@@ -56,7 +56,7 @@ if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
     exit 1
   fi
 else
-  JSON=$( echo "$FULL_JSON" | jq -r '.Parameters | .[] | .Value' )
+  JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
 fi
 
 for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
