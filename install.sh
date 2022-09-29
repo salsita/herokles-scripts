@@ -117,4 +117,5 @@ helm upgrade --install --wait --timeout 15m1s \
   --set ENV=$ENV \
   --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
   --set BRANCH=$BRANCH \
-  --set SHA=$SHA
+  --set SHA=$SHA \
+  --set PROJECT=$PROJECT
