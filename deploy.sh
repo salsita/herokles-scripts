@@ -7,7 +7,7 @@ exec > >( tee -a /var/log/app.log )
 echo "Setting up logging."
 if [ ! -z ${PAPERTRAIL_BASE64+x} ] ; then
   echo "${PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
-  remote_syslog -D &
+  remote_syslog -D --hostname $( hostname ) &
 fi
 
 echo "Configuring aws cli."
