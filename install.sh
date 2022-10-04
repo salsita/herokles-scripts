@@ -25,14 +25,14 @@ mkdir -p ~/.aws
 
 cat > ~/.aws/config <<eoco
 [default]
-region = $BUILD_AWS_REGION
+region = $HEROKLES_AWS_REGION
 eoco
 
 cat > ~/.aws/credentials <<eocre
 [default]
-aws_access_key_id = $BUILD_AWS_ACCESS_KEY_ID
-aws_secret_access_key = $BUILD_AWS_SECRET_ACCESS_KEY
-region = $BUILD_AWS_REGION
+aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
+aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
+region = $HEROKLES_AWS_REGION
 eocre
 
 echo "Getting environment variables."
@@ -108,7 +108,7 @@ else
 fi
 
 echo "Uploading build to S3."
-aws s3 cp product.zip s3://${BUILD_AWS_S3_BUCKET}/${GITHUB_RUN_ID}/ >/dev/null
+aws s3 cp product.zip s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${GITHUB_RUN_ID}/ >/dev/null
 
 echo "Setting up kubectl and heml"
 installHelm
