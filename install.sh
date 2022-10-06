@@ -115,12 +115,17 @@ installHelm
 mkdir -p ~/.kube
 echo "$KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
 
-echo "Install Helm deployment"
-helm upgrade --install --wait --timeout 15m1s \
-  ${PROJECT}-${ENV} \
-  herokles/helm \
-  --set ENV=$ENV \
-  --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
-  --set BRANCH=$BRANCH \
-  --set SHA=$SHA \
-  --set PROJECT=$PROJECT
+if [[ -f herokles/install.sh ]] ; then
+  echo "Install custom deployment"
+else
+  echo "Install Helm deployment"
+  helm upgrade --install --wait --timeout 15m1s \
+    -n ${PROJECT} \
+    ${PROJECT}-${ENV} \
+    herokles/helm \
+    --set ENV=$ENV \
+    --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
+    --set BRANCH=$BRANCH \
+    --set SHA=$SHA \
+    --set PROJECT=$PROJECT
+fi
