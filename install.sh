@@ -113,7 +113,7 @@ aws s3 cp product.zip s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${GITHUB_RUN_ID}/ >/
 echo "Setting up kubectl and heml"
 installHelm
 mkdir -p ~/.kube
-echo "$KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
+echo "$HEROKLES_KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
 
 if [[ -f herokles/install.sh ]] ; then
   echo "Install custom deployment"
