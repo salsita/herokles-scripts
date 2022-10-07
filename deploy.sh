@@ -38,7 +38,7 @@ for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
 done
 
 echo "Getting build from S3."
-aws s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${GITHUB_RUN_ID}/product.zip .
+aws s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${GITHUB_RUN_ID}/product.zip . >/dev/null
 
 echo "Unzipping product.zip."
 unzip product.zip >/dev/null
