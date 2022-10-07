@@ -15,7 +15,7 @@ clean_modules() {
 
 function installHelm {
   curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 -o helm-installer
-  bash helm-installer --version v3.8.1
+  bash helm-installer --version v3.10.0
 }
 
 ENV=$1
@@ -114,6 +114,7 @@ echo "Setting up kubectl and heml"
 installHelm
 mkdir -p ~/.kube
 echo "$HEROKLES_KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
+chmod 400 ~/.kube/config
 
 if [[ -f herokles/install.sh ]] ; then
   echo "Install custom deployment"
