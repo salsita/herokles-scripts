@@ -112,17 +112,37 @@ mkdir -p ~/.kube
 echo "$HEROKLES_KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
 chmod 400 ~/.kube/config
 
+export HELM_DEPLOYMENT="${PROJECT}-${ENV}"
+
 if [[ -f herokles/install.sh ]] ; then
   echo "Install custom deployment"
-else
-  echo "Install Helm deployment"
-  helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
-    -n ${PROJECT} \
-    ${PROJECT}-${ENV} \
-    herokles/helm \
-    --set ENV=$ENV \
-    --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
-    --set BRANCH=$BRANCH \
-    --set SHA=$SHA \
-    --set PROJECT=$PROJECT
+  source ./herokles/install.sh
 fi
+
+echo "Install Helm deployment"
+helm_cmd="helm -n $PROJECT"
+if $helm_cmd list -a | grep -q ${HELM_DEPLOYMENT} ; then
+  current_status=$( $helm_cmd status ${HELM_DEPLOYMENT} --output json | jq -r '.info.status' )
+  if [[ "$current_status" =~ pending-.* ]] ; then
+    echo "Previous helm deployment unsuccessul or not done"
+    rollback_to=$( $helm_cmd history --output json ${HELM_DEPLOYMENT} \
+      jq -r 'map(select(.status == "superseded" or .status == "deployed" ).revision) | max' )
+    if [[ "$rollback_to" != null ]] ; then
+      echo "Rollback to last healthy version ${rollback_to}"
+      $helm_cmd rollback --wait --timeout 3m1s ${HELM_DEPLOYMENT} ${rollback_to}
+    else
+      echo "No healthy version available, uninstalling"
+      $helm_cmd delete --wait --timeout 3m1s ${HELM_DEPLOYMENT}
+    fi
+  fi
+fi
+
+helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
+  -n ${PROJECT} \
+  ${HELM_DEPLOYMENT} \
+  herokles/helm \
+  --set ENV=$ENV \
+  --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
+  --set BRANCH=$BRANCH \
+  --set SHA=$SHA \
+  --set PROJECT=$PROJECT
