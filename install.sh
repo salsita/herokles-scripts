@@ -119,7 +119,7 @@ if [[ -f herokles/install.sh ]] ; then
   echo "Install custom deployment"
 else
   echo "Install Helm deployment"
-  helm upgrade --install --wait --timeout 15m1s \
+  helm upgrade --install --wait --timeout 3m1s \
     -n ${PROJECT} \
     ${PROJECT}-${ENV} \
     herokles/helm \
