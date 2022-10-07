@@ -36,23 +36,19 @@ region = $HEROKLES_AWS_REGION
 eocre
 
 echo "Getting environment variables."
-if [[ $ENV == prs ]] ; then
-  export ENV=pr-${PR_NUM}
-fi
-
 JSON=
-JSON_FULL=$( aws ssm get-parameters --name ${PROJECT}-${ENV} )
+JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
 
 if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
   if [[ $ENV == pr-${PR_NUM} ]] ; then
     echo "New PR deployment, copying env vars from the template."
-    JSON=$( aws ssm get-parameters --name ${PROJECT}-prs | jq -r '.Parameters | .[] | .Value' )
+    JSON=$( aws ssm get-parameters --name /${PROJECT}/prs | jq -r '.Parameters | .[] | .Value' )
     if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
       source ./herokles/set-custom-pr-envs.sh
     fi
-    aws ssm put-parameter --type String --name ${PROJECT}-${ENV} --value "$JSON"
+    aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$JSON"
   else
-    echo "Environment variables for ${PROJECT}-${ENV} not found."
+    echo "Environment variables for /${PROJECT}/${ENV} not found."
     exit 1
   fi
 else

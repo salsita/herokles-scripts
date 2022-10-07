@@ -25,8 +25,11 @@ region = $HEROKLES_AWS_REGION
 eocre
 
 echo "Deleting environment variables."
-export ENV=pr-${PR_NUM}
-aws ssm delete-parameter --name ${PROJECT}-${ENV}
+if [[ $ENV != pr-${PR_NUM} ]] ; then
+  echo "This script is only meant for PR destruction."
+  exit 1
+fi
+aws ssm delete-parameter --name /${PROJECT}/${ENV}
 
 echo "Setting up kubectl and heml"
 installHelm

@@ -26,7 +26,7 @@ region = $HEROKLES_AWS_REGION
 eocre
 
 echo "Getting environment variables."
-JSON_FULL=$( aws ssm get-parameters --name ${PROJECT}-${ENV} )
+JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
 if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
   echo "Missing environment variables paramater ${PROJECT}-${ENV}"
   exit 1
