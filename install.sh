@@ -14,7 +14,7 @@ clean_modules() {
 }
 
 function installHelm {
-  curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 -o helm-installer
+  curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 -o helm-installer
   bash helm-installer --version v3.10.0
 }
 
