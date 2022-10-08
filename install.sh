@@ -100,7 +100,7 @@ if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
   echo "Running $buildToolCmd herokles:pack."
   $buildToolCmd herokles:pack
 else
-  zip --symlinks --r product.zip .
+  zip --symlinks -r product.zip .
 fi
 
 echo "Uploading build to S3."

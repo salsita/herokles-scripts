@@ -2,8 +2,7 @@
 
 set -euo pipefail
 
-exec > >( tee -a /var/log/app.log )
-
+exec &> >( tee /var/log/app.log )
 echo "Setting up logging."
 if [ ! -z ${HEROKLES_PAPERTRAIL_BASE64+x} ] ; then
   echo "${HEROKLES_PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
