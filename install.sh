@@ -140,7 +140,7 @@ fi
 helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   -n ${PROJECT} \
   ${HELM_DEPLOYMENT} \
-  herokles/helm \
+  ${HELM_DIRECTORY:-herokles/helm} \
   --set ENV=$ENV \
   --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
   --set BRANCH=$BRANCH \
