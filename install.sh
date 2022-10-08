@@ -145,4 +145,4 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
   --set BRANCH=$BRANCH \
   --set SHA=$SHA \
-  --set PROJECT=$PROJECT
+  --set PROJECT=$PROJECT ${EXTRA_HELM_PARAMS:-''}
