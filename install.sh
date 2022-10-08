@@ -13,6 +13,27 @@ clean_modules() {
   done
 }
 
+function rollback_on_fail() {
+  local PROJECT=$1
+  local HELM_DEPLOYMENT=$2
+  helm_cmd="helm -n $PROJECT"
+  if $helm_cmd list -a | grep -q ${HELM_DEPLOYMENT} ; then
+    current_status=$( $helm_cmd status ${HELM_DEPLOYMENT} --output json | jq -r '.info.status' )
+    if [[ "$current_status" =~ pending-.* ]] ; then
+      echo "Previous helm deployment unsuccessul or not done"
+      rollback_to=$( $helm_cmd history --output json ${HELM_DEPLOYMENT} \
+        | jq -r 'map(select(.status == "superseded" or .status == "deployed" ).revision) | max' )
+      if [[ "$rollback_to" != null ]] ; then
+        echo "Rollback to last healthy version ${rollback_to}"
+        $helm_cmd rollback --wait --timeout 3m1s ${HELM_DEPLOYMENT} ${rollback_to}
+      else
+        echo "No healthy version available, uninstalling"
+        $helm_cmd delete --wait --timeout 3m1s ${HELM_DEPLOYMENT}
+      fi
+    fi
+  fi
+}
+
 function installHelm {
   curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 -o helm-installer
   bash helm-installer --version v3.10.0
@@ -120,23 +141,8 @@ if [[ -f herokles/install.sh ]] ; then
 fi
 
 echo "Install Helm deployment"
-helm_cmd="helm -n $PROJECT"
-if $helm_cmd list -a | grep -q ${HELM_DEPLOYMENT} ; then
-  current_status=$( $helm_cmd status ${HELM_DEPLOYMENT} --output json | jq -r '.info.status' )
-  if [[ "$current_status" =~ pending-.* ]] ; then
-    echo "Previous helm deployment unsuccessul or not done"
-    rollback_to=$( $helm_cmd history --output json ${HELM_DEPLOYMENT} \
-      jq -r 'map(select(.status == "superseded" or .status == "deployed" ).revision) | max' )
-    if [[ "$rollback_to" != null ]] ; then
-      echo "Rollback to last healthy version ${rollback_to}"
-      $helm_cmd rollback --wait --timeout 3m1s ${HELM_DEPLOYMENT} ${rollback_to}
-    else
-      echo "No healthy version available, uninstalling"
-      $helm_cmd delete --wait --timeout 3m1s ${HELM_DEPLOYMENT}
-    fi
-  fi
-fi
 
+rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT}
 helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   -n ${PROJECT} \
   ${HELM_DEPLOYMENT} \
@@ -145,4 +151,9 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
   --set BRANCH=$BRANCH \
   --set SHA=$SHA \
-  --set PROJECT=$PROJECT ${EXTRA_HELM_PARAMS:-}
+  --set PROJECT=$PROJECT ${EXTRA_HELM_PARAMS:-} || \
+  {
+    echo "Helm deploymet failed"
+    rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT}
+    exit 1
+  }
