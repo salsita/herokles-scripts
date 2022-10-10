@@ -14,6 +14,7 @@ clean_modules() {
 }
 
 function rollback_on_fail() {
+  set -x
   local PROJECT=$1
   local HELM_DEPLOYMENT=$2
   helm_cmd="helm -n $PROJECT"
@@ -40,6 +41,7 @@ function installHelm {
 }
 
 ENV=$1
+S3_FOLDER_NAME=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
 
 echo "Configuring aws cli."
 mkdir -p ~/.aws
@@ -125,7 +127,7 @@ else
 fi
 
 echo "Uploading build to S3."
-aws s3 cp product.zip s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${GITHUB_RUN_ID}/ >/dev/null
+aws s3 cp product.zip s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/ >/dev/null
 
 echo "Setting up kubectl and heml"
 installHelm
@@ -148,7 +150,7 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   ${HELM_DEPLOYMENT} \
   ${HELM_DIRECTORY:-herokles/helm} \
   --set ENV=$ENV \
-  --set GITHUB_RUN_ID=$GITHUB_RUN_ID \
+  --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
   --set BRANCH=$BRANCH \
   --set SHA=$SHA \
   --set PROJECT=$PROJECT ${EXTRA_HELM_PARAMS:-} || \
