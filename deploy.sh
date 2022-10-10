@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-exec > >( tee -a /var/log/app.log )
+exec &> >( tee /var/log/app.log )
 
 echo "Setting up logging."
 if [ ! -z ${HEROKLES_PAPERTRAIL_BASE64+x} ] ; then
@@ -38,7 +38,7 @@ for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
 done
 
 echo "Getting build from S3."
-aws s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${GITHUB_RUN_ID}/product.zip . >/dev/null
+aws s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/product.zip . >/dev/null
 
 echo "Unzipping product.zip."
 unzip product.zip >/dev/null
