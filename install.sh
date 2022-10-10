@@ -14,7 +14,6 @@ clean_modules() {
 }
 
 function rollback_on_fail() {
-  set -x
   local PROJECT=$1
   local HELM_DEPLOYMENT=$2
   local ROLLBACK_FROM_STATUS=$3
