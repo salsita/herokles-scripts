@@ -17,10 +17,11 @@ function rollback_on_fail() {
   set -x
   local PROJECT=$1
   local HELM_DEPLOYMENT=$2
+  local ROLLBACK_FROM_STATUS=$3
   helm_cmd="helm -n $PROJECT"
   if $helm_cmd list -a | grep -q ${HELM_DEPLOYMENT} ; then
     current_status=$( $helm_cmd status ${HELM_DEPLOYMENT} --output json | jq -r '.info.status' )
-    if [[ "$current_status" =~ pending-.* ]] ; then
+    if [[ "$current_status" =~ $ROLLBACK_FROM_STATUS ]] ; then
       echo "Previous helm deployment unsuccessul or not done"
       rollback_to=$( $helm_cmd history --output json ${HELM_DEPLOYMENT} \
         | jq -r 'map(select(.status == "superseded" or .status == "deployed" ).revision) | max' )
@@ -144,7 +145,7 @@ fi
 
 echo "Install Helm deployment"
 
-rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT}
+rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} pending
 helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   -n ${PROJECT} \
   ${HELM_DEPLOYMENT} \
@@ -156,6 +157,6 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   --set PROJECT=$PROJECT ${EXTRA_HELM_PARAMS:-} || \
   {
     echo "Helm deploymet failed"
-    rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT}
+    rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} failed
     exit 1
   }
