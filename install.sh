@@ -31,7 +31,7 @@ function installHelm {
 
 ENV=$1
 S3_FOLDER_NAME=${GITHUB_RUN_ID}
-RANDOM_NUMBER=$( cat /dev/urandom | tr -dc '0-9' | fold -w 16 | head -n 1 )
+EPOCH_TIME=$(date +%s)
 
 echo "Setting up kubectl and heml"
 installHelm
@@ -53,7 +53,7 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   -n ${PROJECT} \
   ${HELM_DEPLOYMENT} \
   ${HELM_DIRECTORY:-herokles/helm} \
-  --set RANDOM_NUMBER=$RANDOM_NUMBER \
+  --set EPOCH_TIME=$EPOCH_TIME \
   --set ENV=$ENV \
   --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
   --set BRANCH=$BRANCH \
