@@ -31,7 +31,7 @@ function installHelm {
 
 ENV=$1
 S3_FOLDER_NAME=${GITHUB_RUN_ID}
-EPOCH_TIME=$(date +%s)
+DEPLOYMENT_TIME=$( date +%s )
 
 echo "Setting up kubectl and heml"
 installHelm
@@ -45,7 +45,7 @@ if [[ -f herokles/install.sh ]] ; then
   echo "Install custom deployment"
   source ./herokles/install.sh
 fi
-set -x
+
 echo "Install Helm deployment"
 
 rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} pending
@@ -53,7 +53,7 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   -n ${PROJECT} \
   ${HELM_DEPLOYMENT} \
   ${HELM_DIRECTORY:-herokles/helm} \
-  --set EPOCH_TIME=$EPOCH_TIME \
+  --set DEPLOYMENT_TIME=$DEPLOYMENT_TIME \
   --set ENV=$ENV \
   --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
   --set BRANCH=$BRANCH \
