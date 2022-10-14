@@ -38,11 +38,11 @@ for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
 done
 
 echo "Getting build from S3."
-aws s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/product.zip . >/dev/null
+aws s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/product.tgz . >/dev/null
 
-echo "Unzipping product.zip."
-unzip product.zip >/dev/null
-rm -rf product.zip
+echo "Unpacking product.zip."
+tar xzf product.tgz
+rm -rf product.tgz
 
 echo "Starting the app."
 if [[ -f ./scripts/herokles-run.sh ]] ; then

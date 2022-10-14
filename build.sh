@@ -96,8 +96,9 @@ if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
   echo "Running $buildToolCmd herokles:pack."
   $buildToolCmd herokles:pack
 else
-  zip --symlinks -r product.zip .
+  echo "Packing the code."
+  tar czf product.tgz .
 fi
 
 echo "Uploading build to S3."
-aws s3 cp product.zip s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/ >/dev/null
+aws s3 cp product.tgz s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/ >/dev/null

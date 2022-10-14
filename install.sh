@@ -54,6 +54,7 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   ${HELM_DEPLOYMENT} \
   ${HELM_DIRECTORY:-herokles/helm} \
   --set DEPLOYMENT_TIME=$DEPLOYMENT_TIME \
+  --set DEPLOY_SCRIPT_VERSION=$(cat herokles/scripts_version) \
   --set ENV=$ENV \
   --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
   --set BRANCH=$BRANCH \
