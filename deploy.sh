@@ -45,8 +45,8 @@ tar xzf product.tgz
 rm -rf product.tgz
 
 echo "Starting the app."
-if [[ -f ./scripts/herokles-run.sh ]] ; then
-  ./scripts/herokles-run.sh
+if [[ -f ./herokles/run.sh ]] ; then
+  ./herokles/run.sh
 elif [[ -f yarn.lock ]] ; then
   yarn herokles:run
 else
