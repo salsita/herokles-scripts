@@ -74,7 +74,7 @@ if jq -e '.scripts."herokles:preinstall"' package.json >/dev/null ; then
 fi
 
 echo "Running $installCmd"
-$installCmd
+NODE_ENV=development $installCmd
 
 if jq -e '.scripts."herokles:build"' package.json >/dev/null ; then
   echo "Running $buildToolCmd herokles:build."
