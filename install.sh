@@ -33,6 +33,34 @@ ENV=$1
 S3_FOLDER_NAME=${GITHUB_RUN_ID}
 DEPLOYMENT_TIME=$( date +%s )
 
+echo "Configuring aws cli."
+mkdir -p ~/.aws
+
+cat > ~/.aws/config <<eoco
+[default]
+region = $HEROKLES_AWS_REGION
+eoco
+
+cat > ~/.aws/credentials <<eocre
+[default]
+aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
+aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
+region = $HEROKLES_AWS_REGION
+eocre
+
+echo "Getting environment variables."
+JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
+if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+  echo "Missing environment variables paramater ${PROJECT}-${ENV}"
+  exit 1
+fi
+
+echo "secrets:" > herokles/helm/values-envs.yaml
+JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
+for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
+  echo "  ${key}: $( echo "$JSON" | jq -r .$key )" >> herokles/helm/values-envs.yaml
+done
+
 echo "Setting up kubectl and heml"
 installHelm
 mkdir -p ~/.kube
@@ -53,13 +81,14 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   -n ${PROJECT} \
   ${HELM_DEPLOYMENT} \
   ${HELM_DIRECTORY:-herokles/helm} \
+  -f herokles/helm/values-envs.yaml \
   --set DEPLOYMENT_TIME=$DEPLOYMENT_TIME \
   --set DEPLOY_SCRIPT_VERSION=$(cat herokles/scripts_version) \
   --set ENV=$ENV \
   --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
   --set BRANCH=$BRANCH \
   --set SHA=$SHA \
-  --set PROJECT=$PROJECT ${EXTRA_HELM_PARAMS:-} || \
+  --set PROJECT=$PROJECT || \
   {
     echo "Helm deploymet failed"
     rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} failed
