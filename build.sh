@@ -71,7 +71,7 @@ else
   buildToolCmd="npm run"
 fi
 
-echo "Running $installCmd herokles:install"
+echo "Running $buildToolCmd herokles:install"
 $buildToolCmd herokles:install
 
 if jq -e '.scripts."herokles:build"' package.json >/dev/null ; then
