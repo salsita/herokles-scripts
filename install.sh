@@ -60,6 +60,7 @@ JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
 for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
   echo "  ${key}: $( echo "$JSON" | jq -r .$key )" >> herokles/helm/values-envs.yaml
 done
+cat herokles/helm/values-envs.yaml
 
 echo "Setting up kubectl and heml"
 installHelm
