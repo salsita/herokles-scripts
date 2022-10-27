@@ -33,12 +33,18 @@ eocre
 
 echo "Getting environment variables."
 JSON=
+JSON_TEMPLATE=
 JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
 
 if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
   if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
     echo "New PR deployment, copying env vars from the template."
-    JSON=$( aws ssm get-parameters --name /${PROJECT}/prs | jq -r '.Parameters | .[] | .Value' )
+    JSON_TEMPLATE=$( aws ssm get-parameters --name /${PROJECT}/prs )
+    if [[ ! -z $( echo "$JSON_TEMPLATE" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+      echo "Template PR variables /${PROJECT}/${ENV} not found."
+      exit 1
+    fi
+    JSON=$( echo "$JSON_TEMPLATE" | jq -r '.Parameters | .[] | .Value' )
     if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
       source ./herokles/set-custom-pr-envs.sh
     fi
