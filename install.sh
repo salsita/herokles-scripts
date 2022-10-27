@@ -58,7 +58,11 @@ fi
 echo "secrets:" > herokles/helm/values-envs.yaml
 JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
 for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
-  echo "  ${key}: $( echo "$JSON" | jq -r .$key )" >> herokles/helm/values-envs.yaml
+  val=$( echo "$JSON" | jq -r .$key )
+  if [[ $vall == true ]] || [[ $val == false ]] ; then
+    val=\"$val\"
+  fi
+  echo "  ${key}: ${val}" >> herokles/helm/values-envs.yaml
 done
 cat herokles/helm/values-envs.yaml
 
