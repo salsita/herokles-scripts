@@ -64,7 +64,6 @@ for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
   fi
   echo "  ${key}: ${val}" >> herokles/helm/values-envs.yaml
 done
-cat herokles/helm/values-envs.yaml
 
 echo "Setting up kubectl and heml"
 installHelm
