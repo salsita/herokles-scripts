@@ -48,6 +48,7 @@ if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
     if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
       source ./herokles/set-custom-pr-envs.sh
     fi
+    JSON=$( echo "$JSON" | jq -c ) # save as much space as possible
     aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$JSON"
   else
     echo "Environment variables for /${PROJECT}/${ENV} not found."
