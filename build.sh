@@ -61,18 +61,26 @@ for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
   export $key="$( echo "$JSON" | jq -r .$key )"
 done
 
+installToolCmd=
 buildToolCmd=
 
 if [[ -f yarn.lock ]] ; then
   echo "Using Yarn."
+  installToolCmd="NODE_ENV=development yarn --frozen-lockfile"
   buildToolCmd=yarn
 else
   echo "Using NPM."
+  installToolCmd="NODE_ENV=development npm ci"
   buildToolCmd="npm run"
 fi
 
-echo "Running $buildToolCmd herokles:install"
-$buildToolCmd herokles:install
+if [[ -f ./herokles/install.sh  ]] ; then
+  echo "Running custom ./herokles/install.sh."
+  ./herokles/install.sh
+else
+echo "Running $installToolCmd."
+  $installToolCmd
+fi
 
 if jq -e '.scripts."herokles:build"' package.json >/dev/null ; then
   echo "Running $buildToolCmd herokles:build."
