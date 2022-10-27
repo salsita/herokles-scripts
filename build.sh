@@ -66,16 +66,16 @@ buildToolCmd=
 
 if [[ -f yarn.lock ]] ; then
   echo "Using Yarn."
-  installToolCmd="NODE_ENV=development yarn --immutable"
+  installToolCmd="yarn --immutable"
   buildToolCmd=yarn
 else
   echo "Using NPM."
-  installToolCmd="NODE_ENV=development npm ci"
+  installToolCmd="npm ci"
   buildToolCmd="npm run"
 fi
 
 echo "Running $installToolCmd."
-$installToolCmd
+NODE_ENV=development $installToolCmd
 
 if jq -e '.scripts."herokles:build"' package.json >/dev/null ; then
   echo "Running $buildToolCmd herokles:build."
