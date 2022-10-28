@@ -32,48 +32,52 @@ region = $HEROKLES_AWS_REGION
 eocre
 
 echo "Getting environment variables."
-JSON=
-JSON_TEMPLATE=
-JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
+JSON=$( mktemp )
+JSON_TEMPLATE=$( mktemp )
+JSON_FULL=$( mktemp )
+aws ssm get-parameters --name /${PROJECT}/${ENV} > $JSON_FULL
 
 if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
-  JSON_TEMPLATE=$( aws ssm get-parameters --name /${PROJECT}/prs ) # get all template envs
-  if [[ ! -z $( echo "$JSON_TEMPLATE" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+  aws ssm get-parameters --name /${PROJECT}/prs > $JSON_TEMPLATE # get all template envs
+  if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_TEMPLATE ) ]] ; then
     echo "Template PR variables /${PROJECT}/prs not found."
     exit 1
   fi
-  if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then # check if it's a new PR
-    JSON=$( echo "$JSON_TEMPLATE" | jq -r '.Parameters | .[] | .Value' )
+  if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then # check if it's a new PR
+    jq -r '.Parameters | .[] | .Value' $JSON_TEMPLATE > $JSON
     if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
       source ./herokles/set-custom-pr-envs.sh
     fi
-    JSON=$( echo "$JSON" | jq -c ) # save as much space as possible
-    aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$JSON"
+    aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$( jq -c $JSON )" # -c saves spaces
   else # try to find new envs in /PROJECT/prs template, fill them in and push
-    update=false
-    JSON_TEMPLATE=$( echo "$JSON_TEMPLATE" | jq -r '.Parameters | .[] | .Value' )
-    for key in $( echo "$JSON_TEMPLATE" | jq -r 'keys[]' ) ; do
-      if [[ $( echo "$JSON" | jq -r .$key ) == null ]] ; then
-        update=true
-        JSON=$( echo "$JSON" | jq ".${key}=\"$( echo "$JSON_TEMPLATE" | jq -r .$key )\"" )
+    update=$( mktemp )
+    jq -r '.Parameters | .[] | .Value' $JSON_FULL > $update
+    cat $update > $JSON
+    jq -r '.Parameters | .[] | .Value' $JSON_TEMPLATE > $update
+    cat $update > $JSON_TEMPLATE
+    echo > $update
+    for key in $( jq -r 'keys[]' $JSON_TEMPLATE ) ; do
+      if [[ $( jq -r .$key $JSON ) == null ]] ; then
+        cat $JSON | jq ".${key}=\"$( jq -r .$key $JSON_TEMPLATE )\"" > $update
+        cat $update > $JSON
       fi
     done
-    if [[ $update == true ]] ; then
-      JSON=$( echo "$JSON" | jq -c ) # save as much space as possible
-      aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$JSON"
+    if [[ ! -z $( cat $update ) ]] ; then
+      aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$( jq -c $JSON )"
     fi
   fi
 else
-  if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+  if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then
     echo "Environment variables for /${PROJECT}/${ENV} not found."
     exit 1
   else
-    JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
+    jsonVar=$( jq -r '.Parameters | .[] | .Value' $JSON_FULL )
+    echo "$jsonVar" > $JSON
   fi
 fi
 
-for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
-  export $key="$( echo "$JSON" | jq -r .$key )"
+for key in $( jq -r 'keys[]' $JSON ) ; do
+  export $key="$( jq -r .$key $JSON )"
 done
 
 installToolCmd=
