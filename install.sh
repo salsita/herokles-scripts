@@ -32,6 +32,8 @@ function installHelm {
 ENV=$1
 S3_FOLDER_NAME=${GITHUB_RUN_ID}
 DEPLOYMENT_TIME=$( date +%s )
+NODE_VERSION=$( jq -r .engines.node package.json )
+DEPLOY_SCRIPT_VERSION=$(cat herokles/scripts_version)
 
 echo "Configuring aws cli."
 mkdir -p ~/.aws
@@ -87,12 +89,13 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   ${HELM_DIRECTORY:-herokles/helm} \
   -f herokles/helm/values-envs.yaml \
   --set DEPLOYMENT_TIME=$DEPLOYMENT_TIME \
-  --set DEPLOY_SCRIPT_VERSION=$(cat herokles/scripts_version) \
+  --set DEPLOY_SCRIPT_VERSION=$DEPLOY_SCRIPT_VERSION \
   --set ENV=$ENV \
   --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
   --set BRANCH=$BRANCH \
   --set SHA=$SHA \
-  --set PROJECT=$PROJECT || \
+  --set PROJECT=$PROJECT
+  --set NODE_VERSION=$NODE_VERSION || \
   {
     echo "Helm deploymet failed"
     rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} failed
