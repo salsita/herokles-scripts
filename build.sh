@@ -64,7 +64,7 @@ if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
       fi
     done
     if [[ ! -z $( cat $update ) ]] ; then
-      aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$( jq -c . $JSON )"
+      aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $JSON )"
     fi
   fi
 else
