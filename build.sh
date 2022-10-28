@@ -44,9 +44,10 @@ if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
     exit 1
   fi
   if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then # check if it's a new PR
+    echo "New PR - create variables."
     jq -r '.Parameters | .[] | .Value' $JSON_TEMPLATE > $JSON
     if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
-      source ./herokles/set-custom-pr-envs.sh
+      ./herokles/set-custom-pr-envs.sh $JSON
     fi
     aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$( jq -c $JSON )" # -c saves spaces
   else # try to find new envs in /PROJECT/prs template, fill them in and push
