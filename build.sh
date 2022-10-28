@@ -36,26 +36,40 @@ JSON=
 JSON_TEMPLATE=
 JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
 
-if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
-  if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
-    echo "New PR deployment, copying env vars from the template."
-    JSON_TEMPLATE=$( aws ssm get-parameters --name /${PROJECT}/prs )
-    if [[ ! -z $( echo "$JSON_TEMPLATE" | jq -r '.InvalidParameters | .[]' ) ]] ; then
-      echo "Template PR variables /${PROJECT}/${ENV} not found."
-      exit 1
-    fi
+if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
+  JSON_TEMPLATE=$( aws ssm get-parameters --name /${PROJECT}/prs ) # get all template envs
+  if [[ ! -z $( echo "$JSON_TEMPLATE" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+    echo "Template PR variables /${PROJECT}/prs not found."
+    exit 1
+  fi
+  if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then # check if it's a new PR
     JSON=$( echo "$JSON_TEMPLATE" | jq -r '.Parameters | .[] | .Value' )
     if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
       source ./herokles/set-custom-pr-envs.sh
     fi
     JSON=$( echo "$JSON" | jq -c ) # save as much space as possible
     aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$JSON"
-  else
-    echo "Environment variables for /${PROJECT}/${ENV} not found."
-    exit 1
+  else # try to find new envs in /PROJECT/prs template, fill them in and push
+    update=false
+    JSON_TEMPLATE=$( echo "$JSON_TEMPLATE" | jq -r '.Parameters | .[] | .Value' )
+    for key in $( echo "$JSON_TEMPLATE" | jq -r 'keys[]' ) ; do
+      if [[ $( echo "$JSON" | jq -r .$key ) == null ]] ; then
+        update=true
+        JSON=$( echo "$JSON" | jq ".${key}=\"$( echo "$JSON_TEMPLATE" | jq -r .$key )\"" )
+      fi
+    done
+    if [[ $update == true ]] ; then
+      JSON=$( echo "$JSON" | jq -c ) # save as much space as possible
+      aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$JSON"
+    fi
   fi
 else
-  JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
+  if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+    echo "Environment variables for /${PROJECT}/${ENV} not found."
+    exit 1
+  else
+    JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
+  fi
 fi
 
 for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
