@@ -94,7 +94,7 @@ helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
   --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
   --set BRANCH=$BRANCH \
   --set SHA=$SHA \
-  --set PROJECT=$PROJECT
+  --set PROJECT=$PROJECT \
   --set NODE_VERSION=$NODE_VERSION || \
   {
     echo "Helm deploymet failed"
