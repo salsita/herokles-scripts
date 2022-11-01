@@ -73,6 +73,7 @@ if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
     done
   fi
   if [[ ! -z $( cat $update ) ]] ; then
+    echo "Uploading new environment variables."
     aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $JSON )"
   fi
 else
@@ -102,8 +103,10 @@ else
   buildToolCmd="npm run"
 fi
 
-echo "Running $installToolCmd."
-[[ ${HEROKLES_INSTALL_DEPS:-true} == true ]] && NODE_ENV=development $installToolCmd
+if [[ ${HEROKLES_INSTALL_DEPS:-true} == true ]] ; then
+  echo "Running $installToolCmd."
+  NODE_ENV=development $installToolCmd
+fi
 
 if jq -e '.scripts."herokles:build"' package.json >/dev/null ; then
   echo "Running $buildToolCmd herokles:build."
