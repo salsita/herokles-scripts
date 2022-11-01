@@ -46,20 +46,22 @@ if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
   if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then # check if it's a new PR
     echo "New PR - copying variables from /${PROJECT}/prs."
     cat $JSON_TEMPLATE > $JSON_FULL
-  else # try to find new envs in /PROJECT/prs template, fill them in and push
-    # $update file works a) for retrieving only the env var values from a rich JSON and b) as a condition checker for when to update pr-<num> parameter
-    update=$( mktemp )
-    jq -r '.Parameters | .[] | .Value' $JSON_FULL > $update
-    cat $update > $JSON
-    jq -r '.Parameters | .[] | .Value' $JSON_TEMPLATE > $update
-    cat $update > $JSON_TEMPLATE
-    echo > $update
-    for key in $( jq -r 'keys[]' $JSON_TEMPLATE ) ; do
-      if [[ $( jq -r .$key $JSON ) == null ]] ; then
-        cat $JSON | jq ".${key}=\"$( jq -r .$key $JSON_TEMPLATE )\"" > $update
-        cat $update > $JSON
-      fi
-    done
+  fi
+  # try to find new envs in /PROJECT/prs template, fill them in and push
+  # $update file works a) for retrieving only the env var values from a rich JSON and b) as a condition checker for when to update pr-<num> parameter
+  update=$( mktemp )
+  jq -r '.Parameters | .[] | .Value' $JSON_FULL > $update
+  cat $update > $JSON
+  jq -r '.Parameters | .[] | .Value' $JSON_TEMPLATE > $update
+  cat $update > $JSON_TEMPLATE
+  echo > $update
+  for key in $( jq -r 'keys[]' $JSON_TEMPLATE ) ; do
+    if [[ $( jq -r .$key $JSON ) == null ]] ; then
+      cat $JSON | jq ".${key}=\"$( jq -r .$key $JSON_TEMPLATE )\"" > $update
+      cat $update > $JSON
+    fi
+  done
+  if [[ -f ./herokles/set-custom-pr-envs.sh ]] ; then
     ./herokles/set-custom-pr-envs.sh \
     | while read line ; do
       key=$( echo "$line" | cut -d'=' -f1 )
@@ -69,9 +71,9 @@ if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
         cat $update > $JSON
       fi
     done
-    if [[ ! -z $( cat $update ) ]] ; then
-      aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $JSON )"
-    fi
+  fi
+  if [[ ! -z $( cat $update ) ]] ; then
+    aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $JSON )"
   fi
 else
   if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then
