@@ -25,18 +25,6 @@ aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
 region = $HEROKLES_AWS_REGION
 eocre
 
-echo "Getting environment variables."
-JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
-if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
-  echo "Missing environment variables paramater ${PROJECT}-${ENV}"
-  exit 1
-fi
-
-JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
-for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
-  export $key="$( echo "$JSON" | jq -r .$key )"
-done
-
 echo "Getting build from S3."
 aws s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/product.tgz . >/dev/null
 

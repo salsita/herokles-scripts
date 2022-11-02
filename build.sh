@@ -14,7 +14,7 @@ clean_modules() {
 }
 
 ENV=$1
-S3_FOLDER_NAME=${GITHUB_RUN_ID}
+S3_FOLDER_NAME=${GITHUB_RUN_ID:-}
 
 echo "Configuring aws cli."
 mkdir -p ~/.aws
@@ -32,58 +32,85 @@ region = $HEROKLES_AWS_REGION
 eocre
 
 echo "Getting environment variables."
-JSON=
-JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
+JSON=$( mktemp )
+JSON_TEMPLATE=$( mktemp )
+JSON_FULL=$( mktemp )
+aws ssm get-parameters --name /${PROJECT}/${ENV} > $JSON_FULL
 
-if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
-  if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
-    echo "New PR deployment, copying env vars from the template."
-    JSON=$( aws ssm get-parameters --name /${PROJECT}/prs | jq -r '.Parameters | .[] | .Value' )
-    if [[ -f herokles/set-custom-pr-envs.sh ]] ; then
-      source ./herokles/set-custom-pr-envs.sh
-    fi
-    aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --value "$JSON"
-  else
-    echo "Environment variables for /${PROJECT}/${ENV} not found."
+if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
+  aws ssm get-parameters --name /${PROJECT}/prs > $JSON_TEMPLATE # get all template envs
+  if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_TEMPLATE ) ]] ; then
+    echo "Template PR variables /${PROJECT}/prs not found."
     exit 1
   fi
+  if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then # check if it's a new PR
+    echo "New PR - copying variables from /${PROJECT}/prs."
+    cat $JSON_TEMPLATE > $JSON_FULL
+  fi
+  # try to find new envs in /PROJECT/prs template, fill them in and push
+  # $update file works a) for retrieving only the env var values from a rich JSON and b) as a condition checker for when to update pr-<num> parameter
+  update=$( mktemp )
+  jq -r '.Parameters | .[] | .Value' $JSON_FULL > $update
+  cat $update > $JSON
+  jq -r '.Parameters | .[] | .Value' $JSON_TEMPLATE > $update
+  cat $update > $JSON_TEMPLATE
+  echo > $update
+  for key in $( jq -r 'keys[]' $JSON_TEMPLATE ) ; do
+    if [[ $( jq -r .$key $JSON ) == null ]] ; then
+      cat $JSON | jq ".${key}=\"$( jq -r .$key $JSON_TEMPLATE )\"" > $update
+      cat $update > $JSON
+    fi
+  done
+  if [[ -f ./herokles/set-custom-pr-envs.sh ]] ; then
+    ./herokles/set-custom-pr-envs.sh \
+    | while read line ; do
+      key=$( echo "$line" | cut -d'=' -f1 )
+      val=$( echo "$line" | cut -d'=' -f2- )
+      if [[ $( jq -r .$key $JSON ) == null ]] ; then
+        cat $JSON | jq ".${key}=\"${val}\"" > $update
+        cat $update > $JSON
+      fi
+    done
+  fi
+  if [[ ! -z $( cat $update ) ]] ; then
+    echo "Uploading new environment variables."
+    aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $JSON )"
+  fi
 else
-  JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
+  if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then
+    echo "Environment variables for /${PROJECT}/${ENV} not found."
+    exit 1
+  else
+    jsonVar=$( jq -r '.Parameters | .[] | .Value' $JSON_FULL )
+    echo "$jsonVar" > $JSON
+  fi
 fi
 
-for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
-  export $key="$( echo "$JSON" | jq -r .$key )"
+for key in $( jq -r 'keys[]' $JSON ) ; do
+  export $key="$( jq -r .$key $JSON )"
 done
 
-installCmd=
+installToolCmd=
 buildToolCmd=
 
 if [[ -f yarn.lock ]] ; then
   echo "Using Yarn."
-  installCmd="yarn --frozen-lockfile"
+  installToolCmd="yarn --immutable"
   buildToolCmd=yarn
 else
   echo "Using NPM."
-  installCmd="npm ci"
+  installToolCmd="npm ci"
   buildToolCmd="npm run"
 fi
 
-if jq -e '.scripts."herokles:preinstall"' package.json >/dev/null ; then
-  echo "Running $buildToolCmd herokles:preinstall."
-  $buildToolCmd herokles:preinstall
+if [[ ${HEROKLES_INSTALL_DEPS:-true} == true ]] ; then
+  echo "Running $installToolCmd."
+  NODE_ENV=development $installToolCmd
 fi
-
-echo "Running $installCmd"
-NODE_ENV=development $installCmd
 
 if jq -e '.scripts."herokles:build"' package.json >/dev/null ; then
   echo "Running $buildToolCmd herokles:build."
   $buildToolCmd herokles:build
-fi
-
-if jq -e '.scripts."herokles:postbuild"' package.json >/dev/null ; then
-  echo "Running $buildToolCmd herokles:postbuild."
-  $buildToolCmd herokles:postbuild
 fi
 
 if jq -e '.scripts."herokles:prodinstall"' package.json >/dev/null ; then
@@ -92,13 +119,15 @@ if jq -e '.scripts."herokles:prodinstall"' package.json >/dev/null ; then
   $buildToolCmd herokles:prodinstall
 fi
 
-if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
-  echo "Running $buildToolCmd herokles:pack."
-  $buildToolCmd herokles:pack
-else
-  echo "Packing the code."
-  tar czf product.tgz .
-fi
+if [[ ! -z ${S3_FOLDER_NAME} ]] ; then
+  if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
+    echo "Running $buildToolCmd herokles:pack."
+    $buildToolCmd herokles:pack
+  else
+    echo "Packing the code."
+    tar czf product.tgz .
+  fi
 
-echo "Uploading build to S3."
-aws s3 cp product.tgz s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/ >/dev/null
+  echo "Uploading build to S3."
+  aws s3 cp product.tgz s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/ >/dev/null
+fi
