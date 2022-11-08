@@ -44,10 +44,10 @@ if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
     exit 1
   fi
   if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then # check if it's a new PR
-    echo "New PR - copying variables from /${PROJECT}/prs."
-    cat $JSON_TEMPLATE > $JSON_FULL
+    echo "New PR - setting to copy from /${PROJECT}/prs."
+    echo '{ "Parameters": [ { "Value": { } } ] }' > $JSON_FULL
   fi
-  # try to find new envs in /PROJECT/prs template, fill them in and push
+  # find new envs in /PROJECT/prs template, fill them in and push
   # $update file works a) for retrieving only the env var values from a rich JSON and b) as a condition checker for when to update pr-<num> parameter
   update=$( mktemp )
   jq -r '.Parameters | .[] | .Value' $JSON_FULL > $update
