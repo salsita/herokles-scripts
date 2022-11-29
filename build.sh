@@ -13,7 +13,7 @@ clean_modules() {
   done
 }
 
-ENV=$1
+export ENV=$1
 S3_FOLDER_NAME=${GITHUB_RUN_ID:-}
 
 echo "Configuring aws cli."
