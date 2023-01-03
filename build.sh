@@ -119,6 +119,10 @@ if jq -e '.scripts."herokles:prodinstall"' package.json >/dev/null ; then
   $buildToolCmd herokles:prodinstall
 fi
 
+for key in $( jq -r 'keys[]' $JSON ) ; do
+  unset $key
+done
+
 if [[ ! -z ${S3_FOLDER_NAME} ]] ; then
   if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
     echo "Running $buildToolCmd herokles:pack."
