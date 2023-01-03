@@ -14,12 +14,12 @@ echo "Configuring aws cli."
 mkdir -p ~/.aws
 
 cat > ~/.aws/config <<eoco
-[profile herokles]
+[herokles]
 region = $HEROKLES_AWS_REGION
 eoco
 
 cat > ~/.aws/credentials <<eocre
-[profile herokles]
+[herokles]
 aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
 aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
 region = $HEROKLES_AWS_REGION
