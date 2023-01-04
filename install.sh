@@ -39,19 +39,19 @@ echo "Configuring aws cli."
 mkdir -p ~/.aws
 
 cat > ~/.aws/config <<eoco
-[default]
+[herokles]
 region = $HEROKLES_AWS_REGION
 eoco
 
 cat > ~/.aws/credentials <<eocre
-[default]
+[herokles]
 aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
 aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
 region = $HEROKLES_AWS_REGION
 eocre
 
 echo "Getting environment variables."
-JSON_FULL=$( aws ssm get-parameters --name /${PROJECT}/${ENV} )
+JSON_FULL=$( aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} )
 if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
   echo "Missing environment variables paramater ${PROJECT}-${ENV}"
   exit 1

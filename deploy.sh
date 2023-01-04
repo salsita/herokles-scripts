@@ -14,21 +14,21 @@ echo "Configuring aws cli."
 mkdir -p ~/.aws
 
 cat > ~/.aws/config <<eoco
-[default]
+[herokles]
 region = $HEROKLES_AWS_REGION
 eoco
 
 cat > ~/.aws/credentials <<eocre
-[default]
+[herokles]
 aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
 aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
 region = $HEROKLES_AWS_REGION
 eocre
 
 echo "Getting build from S3."
-aws s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/product.tgz . >/dev/null
+aws --profile herokles s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/product.tgz . >/dev/null
 
-echo "Unpacking product.zip."
+echo "Unpacking product.tgz."
 tar xzf product.tgz
 rm -rf product.tgz
 

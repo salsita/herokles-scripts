@@ -20,12 +20,12 @@ echo "Configuring aws cli."
 mkdir -p ~/.aws
 
 cat > ~/.aws/config <<eoco
-[default]
+[herokles]
 region = $HEROKLES_AWS_REGION
 eoco
 
 cat > ~/.aws/credentials <<eocre
-[default]
+[herokles]
 aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
 aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
 region = $HEROKLES_AWS_REGION
@@ -35,10 +35,10 @@ echo "Getting environment variables."
 JSON=$( mktemp )
 JSON_TEMPLATE=$( mktemp )
 JSON_FULL=$( mktemp )
-aws ssm get-parameters --name /${PROJECT}/${ENV} > $JSON_FULL
+aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} > $JSON_FULL
 
 if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
-  aws ssm get-parameters --name /${PROJECT}/prs > $JSON_TEMPLATE # get all template envs
+  aws --profile herokles ssm get-parameters --name /${PROJECT}/prs > $JSON_TEMPLATE # get all template envs
   if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_TEMPLATE ) ]] ; then
     echo "Template PR variables /${PROJECT}/prs not found."
     exit 1
@@ -74,7 +74,7 @@ if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
   fi
   if [[ ! -z $( cat $update ) ]] ; then
     echo "Uploading new environment variables."
-    aws ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $JSON )"
+    aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $JSON )"
   fi
 else
   if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then
@@ -129,5 +129,5 @@ if [[ ! -z ${S3_FOLDER_NAME} ]] ; then
   fi
 
   echo "Uploading build to S3."
-  aws s3 cp product.tgz s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/ >/dev/null
+  aws --profile herokles s3 cp product.tgz s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/ >/dev/null
 fi

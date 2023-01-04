@@ -13,12 +13,12 @@ echo "Configuring aws cli."
 mkdir -p ~/.aws
 
 cat > ~/.aws/config <<eoco
-[default]
+[herokles]
 region = $HEROKLES_AWS_REGION
 eoco
 
 cat > ~/.aws/credentials <<eocre
-[default]
+[herokles]
 aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
 aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
 region = $HEROKLES_AWS_REGION
@@ -29,7 +29,7 @@ if [[ $ENV != pr-${PR_NUM} ]] ; then
   echo "This script is only meant for PR destruction."
   exit 1
 fi
-aws ssm delete-parameter --name /${PROJECT}/${ENV}
+aws --profile herokles ssm delete-parameter --name /${PROJECT}/${ENV}
 
 echo "Setting up kubectl and heml"
 installHelm
