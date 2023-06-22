@@ -2,18 +2,8 @@
 
 set -euo pipefail
 
-function kill_log() {
-  kill $LOG_PID
-}
-
 function main() {
   echo "Starting main function."
-  echo "Setting up logging."
-  if [ ! -z ${HEROKLES_PAPERTRAIL_BASE64+x} ] ; then
-    echo "${HEROKLES_PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
-    remote_syslog -D --hostname $( hostname ) &
-  fi
-
   echo "Configuring aws cli."
   mkdir -p ~/.aws
 
@@ -47,9 +37,15 @@ eocre
   echo "App died or finished."
 }
 
-touch /var/log/app.log
-tail -f /var/log/app.log &
-export LOG_PID=$!
+readonly LOG_FILE=/var/log/app.log
 
-trap kill_log 0
-main &> /var/log/app.log
+touch $LOG_FILE
+tail -f $LOG_FILE &
+
+if [ ! -z ${HEROKLES_PAPERTRAIL_BASE64+x} ] ; then
+  echo "${HEROKLES_PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
+  remote_syslog -D --hostname $( hostname ) &
+  echo "Remote logging initialized." >> $LOG_FILE
+fi
+
+main &>> $LOG_FILE
