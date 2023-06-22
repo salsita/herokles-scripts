@@ -2,42 +2,54 @@
 
 set -euo pipefail
 
-exec &> >( tee /var/log/app.log )
+function kill_log() {
+  kill $LOG_PID
+}
 
-echo "Setting up logging."
-if [ ! -z ${HEROKLES_PAPERTRAIL_BASE64+x} ] ; then
-  echo "${HEROKLES_PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
-  remote_syslog -D --hostname $( hostname ) &
-fi
+function main() {
+  echo "Starting main function."
+  echo "Setting up logging."
+  if [ ! -z ${HEROKLES_PAPERTRAIL_BASE64+x} ] ; then
+    echo "${HEROKLES_PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
+    remote_syslog -D --hostname $( hostname ) &
+  fi
 
-echo "Configuring aws cli."
-mkdir -p ~/.aws
+  echo "Configuring aws cli."
+  mkdir -p ~/.aws
 
-cat > ~/.aws/config <<eoco
-[herokles]
-region = $HEROKLES_AWS_REGION
+  cat > ~/.aws/config <<eoco
+  [herokles]
+  region = $HEROKLES_AWS_REGION
 eoco
 
-cat > ~/.aws/credentials <<eocre
-[herokles]
-aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
-aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
-region = $HEROKLES_AWS_REGION
+  cat > ~/.aws/credentials <<eocre
+  [herokles]
+  aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
+  aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
+  region = $HEROKLES_AWS_REGION
 eocre
 
-echo "Getting build from S3."
-aws --profile herokles s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/product.tgz . >/dev/null
+  echo "Getting build from S3."
+  aws --profile herokles s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/product.tgz . >/dev/null
 
-set -x
-echo "Unpacking product.tgz."
-tar xzf product.tgz
-rm -rf product.tgz
+  echo "Unpacking product.tgz."
+  tar xzf product.tgz
+  rm -rf product.tgz
 
-echo "Starting the app."
-if [[ -f ./herokles/run.sh ]] ; then
-  ./herokles/run.sh
-elif [[ -f yarn.lock ]] ; then
-  yarn herokles:run
-else
-  npm run herokles:run
-fi
+  echo "Starting the app."
+  if [[ -f ./herokles/run.sh ]] ; then
+    ./herokles/run.sh
+  elif [[ -f yarn.lock ]] ; then
+    yarn herokles:run
+  else
+    npm run herokles:run
+  fi
+  echo "App died or finished."
+}
+
+touch /var/log/app.log
+tail -f /var/log/app.log &
+export LOG_PID=$!
+
+trap kill_log 0
+main &> /var/log/app.log
