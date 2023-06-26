@@ -90,39 +90,40 @@ for key in $( jq -r 'keys[]' $JSON ) ; do
   export $key="$( jq -r .$key $JSON )"
 done
 
-installToolCmd=
-buildToolCmd=
+install_tool_cmd=
+build_tool_cmd=
+install_params=${HEROKLES_INSTALL_PARAMS:-}
 
 if [[ -f yarn.lock ]] ; then
   echo "Using Yarn."
-  installToolCmd="yarn --immutable"
-  buildToolCmd=yarn
+  install_tool_cmd="yarn --immutable"
+  build_tool_cmd=yarn
 else
   echo "Using NPM."
-  installToolCmd="npm ci"
-  buildToolCmd="npm run"
+  install_tool_cmd="npm ci"
+  build_tool_cmd="npm run"
 fi
 
 if [[ ${HEROKLES_INSTALL_DEPS:-true} == true ]] ; then
-  echo "Running $installToolCmd."
-  NODE_ENV=development $installToolCmd
+  echo "Running $install_tool_cmd."
+  NODE_ENV=development $install_tool_cmd $install_params
 fi
 
 if jq -e '.scripts."herokles:build"' package.json >/dev/null ; then
-  echo "Running $buildToolCmd herokles:build."
-  $buildToolCmd herokles:build
+  echo "Running $build_tool_cmd herokles:build."
+  $build_tool_cmd herokles:build
 fi
 
 if jq -e '.scripts."herokles:prodinstall"' package.json >/dev/null ; then
-  echo "Cleaning up all node_modules and running $buildToolCmd herokles:prodinstall."
+  echo "Cleaning up all node_modules and running $build_tool_cmd herokles:prodinstall."
   clean_modules
-  $buildToolCmd herokles:prodinstall
+  $build_tool_cmd herokles:prodinstall
 fi
 
 if [[ ! -z ${S3_FOLDER_NAME} ]] ; then
   if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
-    echo "Running $buildToolCmd herokles:pack."
-    $buildToolCmd herokles:pack
+    echo "Running $build_tool_cmd herokles:pack."
+    $build_tool_cmd herokles:pack
   else
     echo "Packing the code."
     tar czf product.tgz .
