@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-function main() {
+readonly LOG_FILE=/var/log/app.log
+
+function start() {
   echo "Starting main function."
   echo "Configuring aws cli."
   mkdir -p ~/.aws
@@ -37,15 +39,16 @@ eocre
   echo "App died or finished."
 }
 
-readonly LOG_FILE=/var/log/app.log
+function main() {
+  touch $LOG_FILE
+  tail -f $LOG_FILE &
 
-touch $LOG_FILE
-tail -f $LOG_FILE &
+  if [ ! -z ${HEROKLES_PAPERTRAIL_BASE64+x} ] ; then
+    echo "${HEROKLES_PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
+    remote_syslog -D --hostname $( hostname ) &
+    echo "Remote logging initialized." >> $LOG_FILE
+  fi
+  start &>> $LOG_FILE
+}
 
-if [ ! -z ${HEROKLES_PAPERTRAIL_BASE64+x} ] ; then
-  echo "${HEROKLES_PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
-  remote_syslog -D --hostname $( hostname ) &
-  echo "Remote logging initialized." >> $LOG_FILE
-fi
-
-main &>> $LOG_FILE
+main
