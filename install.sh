@@ -35,20 +35,22 @@ DEPLOYMENT_TIME=$( date +%s )
 NODE_VERSION=$( jq -r .engines.node package.json )
 DEPLOY_SCRIPT_VERSION=$(cat herokles/scripts_version)
 
-echo "Configuring aws cli."
-mkdir -p ~/.aws
+if [[ ! -d ~/.aws ]] ; then
+  echo "Configuring aws cli."
+  mkdir -p ~/.aws
 
-cat > ~/.aws/config <<eoco
+  cat > ~/.aws/config <<eoco
 [herokles]
 region = $HEROKLES_AWS_REGION
 eoco
 
-cat > ~/.aws/credentials <<eocre
+  cat > ~/.aws/credentials <<eocre
 [herokles]
 aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
 aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
 region = $HEROKLES_AWS_REGION
 eocre
+fi
 
 echo "Getting environment variables."
 JSON_FULL=$( aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} )
@@ -67,11 +69,13 @@ for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
   echo "  ${key}: ${val}" >> herokles/helm/values-envs.yaml
 done
 
-echo "Setting up kubectl and heml"
-installHelm
-mkdir -p ~/.kube
-echo "$HEROKLES_KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
-chmod 400 ~/.kube/config
+if [[ ! -d ~/.kube ]] && [[ -z ${KUBECONFIG:-} ]] ; then
+  echo "Setting up kubectl and heml"
+  installHelm
+  mkdir -p ~/.kube
+  echo "$HEROKLES_KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
+  chmod 400 ~/.kube/config
+fi
 
 export HELM_DEPLOYMENT="${PROJECT}-${ENV}"
 
