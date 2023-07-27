@@ -25,8 +25,8 @@ eocre
   fi
 
   echo "Deleting environment variables."
-  if [[ $ENV != pr-${PR_NUM} ]] ; then
-    echo "This script is only meant for PR destruction."
+  if [[ ${FORCE_UNINSTALL:-} != true ]] || [[ $ENV != pr-${PR_NUM} ]] ; then
+    echo "ENV has to be a PR or FORCE_UNINSTALL=true must be set."
     exit 1
   fi
   aws --profile herokles ssm delete-parameter --name /${PROJECT}/${ENV}
