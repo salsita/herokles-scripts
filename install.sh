@@ -8,9 +8,7 @@ readonly DEPLOY_SCRIPT_VERSION=$( cat herokles/scripts_version )
 readonly HELM_DEPLOYMENT="${PROJECT}-${ENV}"
 
 function rollback_on_fail() {
-  local PROJECT=$1
-  local HELM_DEPLOYMENT=$2
-  local ROLLBACK_FROM_STATUS=$3
+  local ROLLBACK_FROM_STATUS=$1
   helm_cmd="helm -n $PROJECT"
   if $helm_cmd list -a | grep -q ${HELM_DEPLOYMENT} ; then
     current_status=$( $helm_cmd status ${HELM_DEPLOYMENT} --output json | jq -r '.info.status' )
@@ -83,7 +81,7 @@ eocre
   fi
 
   echo "Install Helm deployment"
-  rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} pending
+  rollback_on_fail pending
   helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
     -n ${PROJECT} \
     ${HELM_DEPLOYMENT} \
@@ -99,7 +97,7 @@ eocre
     --set NODE_VERSION=$NODE_VERSION || \
     {
       echo "Helm deploymet failed"
-      rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} failed
+      rollback_on_fail failed
       exit 1
     }
 }
