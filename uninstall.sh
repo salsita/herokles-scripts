@@ -25,7 +25,7 @@ eocre
   fi
 
   echo "Deleting environment variables."
-  if [[ ${FORCE_UNINSTALL:-} != true ]] || [[ $ENV != pr-${PR_NUM:-} ]] ; then
+  if [[ ${FORCE_UNINSTALL:-} != true ]] && [[ $ENV != pr-${PR_NUM} ]] ; then
     echo "ENV has to be a PR or FORCE_UNINSTALL=true must be set."
     exit 1
   fi
