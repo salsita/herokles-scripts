@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+readonly DEPLOYMENT_TIME=$( date +%s )
+readonly NODE_VERSION=$( jq -r .engines.node package.json )
+readonly DEPLOY_SCRIPT_VERSION=$( cat herokles/scripts_version )
+readonly HELM_DEPLOYMENT="${PROJECT}-${ENV}"
+
 function rollback_on_fail() {
   local PROJECT=$1
   local HELM_DEPLOYMENT=$2
@@ -24,84 +29,78 @@ function rollback_on_fail() {
   fi
 }
 
-function installHelm {
+function installHelm() {
   curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 -o helm-installer
-  bash helm-installer --version v3.10.0
+  bash helm-installer --version v3.12.2
 }
 
-ENV=$1
-S3_FOLDER_NAME=${GITHUB_RUN_ID}
-DEPLOYMENT_TIME=$( date +%s )
-NODE_VERSION=$( jq -r .engines.node package.json )
-DEPLOY_SCRIPT_VERSION=$(cat herokles/scripts_version)
-
-if [[ ! -d ~/.aws ]] ; then
-  echo "Configuring aws cli."
-  mkdir -p ~/.aws
-
-  cat > ~/.aws/config <<eoco
+function main() {
+  if [[ ! -d ~/.aws ]] ; then
+    echo "Configuring aws cli."
+    mkdir -p ~/.aws
+    cat > ~/.aws/config <<eoco
 [herokles]
 region = $HEROKLES_AWS_REGION
 eoco
 
-  cat > ~/.aws/credentials <<eocre
+    cat > ~/.aws/credentials <<eocre
 [herokles]
 aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
 aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
 region = $HEROKLES_AWS_REGION
 eocre
-fi
-
-echo "Getting environment variables."
-JSON_FULL=$( aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} )
-if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
-  echo "Missing environment variables paramater ${PROJECT}-${ENV}"
-  exit 1
-fi
-
-echo "secrets:" > herokles/helm/values-envs.yaml
-JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
-for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
-  val=$( echo "$JSON" | jq -r .$key )
-  if [[ $val == true ]] || [[ $val == false ]] || [[ $val =~ ^[0-9]+$ ]] ; then
-    val=\"$val\"
   fi
-  echo "  ${key}: ${val}" >> herokles/helm/values-envs.yaml
-done
 
-if [[ ! -d ~/.kube ]] && [[ -z ${KUBECONFIG:-} ]] ; then
-  echo "Setting up kubectl and heml"
-  installHelm
-  mkdir -p ~/.kube
-  echo "$HEROKLES_KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
-  chmod 400 ~/.kube/config
-fi
-
-export HELM_DEPLOYMENT="${PROJECT}-${ENV}"
-
-if [[ -f herokles/install.sh ]] ; then
-  echo "Install custom deployment"
-  source ./herokles/install.sh
-fi
-
-echo "Install Helm deployment"
-
-rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} pending
-helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
-  -n ${PROJECT} \
-  ${HELM_DEPLOYMENT} \
-  ${HELM_DIRECTORY:-herokles/helm} \
-  -f herokles/helm/values-envs.yaml \
-  --set DEPLOYMENT_TIME=$DEPLOYMENT_TIME \
-  --set DEPLOY_SCRIPT_VERSION=$DEPLOY_SCRIPT_VERSION \
-  --set ENV=$ENV \
-  --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
-  --set BRANCH=$BRANCH \
-  --set SHA=$SHA \
-  --set PROJECT=$PROJECT \
-  --set NODE_VERSION=$NODE_VERSION || \
-  {
-    echo "Helm deploymet failed"
-    rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} failed
+  echo "Getting environment variables."
+  local JSON_FULL=$( aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} )
+  if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+    echo "Missing environment variables paramater ${PROJECT}-${ENV}"
     exit 1
-  }
+  fi
+
+  echo "secrets:" > herokles/helm/values-envs.yaml
+  local JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
+  local key val
+  for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
+    val=$( echo "$JSON" | jq -r .$key )
+    if [[ $val == true ]] || [[ $val == false ]] || [[ $val =~ ^[0-9]+$ ]] ; then
+      val=\"$val\"
+    fi
+    echo "  ${key}: ${val}" >> herokles/helm/values-envs.yaml
+  done
+
+  if [[ ! -d ~/.kube ]] && [[ -z ${KUBECONFIG:-} ]] ; then
+    echo "Setting up kubectl and heml"
+    installHelm
+    mkdir -p ~/.kube
+    echo "$HEROKLES_KUBECONFIG_BASE64" | base64 -d > ~/.kube/config
+    chmod 400 ~/.kube/config
+  fi
+
+  if [[ -f herokles/install.sh ]] ; then
+    echo "Install custom deployment"
+    source ./herokles/install.sh
+  fi
+
+  echo "Install Helm deployment"
+  rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} pending
+  helm upgrade --install --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s} \
+    -n ${PROJECT} \
+    ${HELM_DEPLOYMENT} \
+    ${HELM_DIRECTORY:-herokles/helm} \
+    -f herokles/helm/values-envs.yaml \
+    --set DEPLOYMENT_TIME=$DEPLOYMENT_TIME \
+    --set DEPLOY_SCRIPT_VERSION=$DEPLOY_SCRIPT_VERSION \
+    --set ENV=$ENV \
+    --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
+    --set BRANCH=$BRANCH \
+    --set SHA=$SHA \
+    --set PROJECT=$PROJECT \
+    --set NODE_VERSION=$NODE_VERSION || \
+    {
+      echo "Helm deploymet failed"
+      rollback_on_fail ${PROJECT} ${HELM_DEPLOYMENT} failed
+      exit 1
+    }
+}
+main "$@"
