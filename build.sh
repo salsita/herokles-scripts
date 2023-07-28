@@ -119,7 +119,7 @@ eocre
     $build_tool_cmd herokles:prodinstall
   fi
 
-  if [[ -n ${S3_FOLDER_NAME} ]] ; then
+  if [[ -n ${HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER} ]] ; then
     if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
       echo "Running $build_tool_cmd herokles:pack."
       $build_tool_cmd herokles:pack
@@ -129,7 +129,7 @@ eocre
     fi
 
     echo "Uploading build to S3."
-    aws --profile herokles s3 cp product.tgz s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${S3_FOLDER_NAME}/ >/dev/null
+    aws --profile herokles s3 cp product.tgz s3://${HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER}/ >/dev/null
   fi
 }
 

@@ -90,12 +90,13 @@ eocre
     --set DEPLOYMENT_TIME=$DEPLOYMENT_TIME \
     --set DEPLOY_SCRIPT_VERSION=$DEPLOY_SCRIPT_VERSION \
     --set ENV=$ENV \
-    --set S3_FOLDER_NAME=$S3_FOLDER_NAME \
     --set BRANCH=$BRANCH \
     --set SHA=$SHA \
     --set PROJECT=$PROJECT \
-    --set NODE_VERSION=$NODE_VERSION || \
-    {
+    --set HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER=$HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER \
+    --set BASE_VERSION=$BASE_VERSION \
+    --set LANG_VERSION=$NODE_VERSION \
+    || {
       echo "Helm deploymet failed"
       rollback_on_fail failed
       exit 1
