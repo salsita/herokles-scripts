@@ -4,6 +4,7 @@ set -euo pipefail
 
 readonly DEPLOYMENT_TIME=$( date +%s )
 readonly NODE_VERSION=$( jq -r .engines.node package.json )
+readonly BASE_VERSION=$( cat herokles/base_version )
 readonly DEPLOY_SCRIPT_VERSION=$( cat herokles/scripts_version )
 readonly HELM_DEPLOYMENT="${PROJECT}-${ENV}"
 
