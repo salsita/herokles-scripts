@@ -23,7 +23,7 @@ eocre
   fi
 
   echo "Getting build from S3."
-  aws --profile herokles s3 cp s3://${HEROKLES_AWS_S3_FOLDER_NAME}/product.tgz . >/dev/null
+  aws --profile herokles s3 cp s3://${HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER}/product.tgz . >/dev/null
 
   echo "Unpacking product.tgz."
   tar xzf product.tgz
