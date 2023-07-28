@@ -119,7 +119,7 @@ eocre
     $build_tool_cmd herokles:prodinstall
   fi
 
-  if [[ -n ${HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER} ]] ; then
+  if [[ -n ${HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER:-} ]] ; then
     if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
       echo "Running $build_tool_cmd herokles:pack."
       $build_tool_cmd herokles:pack
