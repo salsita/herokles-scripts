@@ -9,11 +9,11 @@ readonly DEPLOY_SCRIPT_VERSION=$( cat herokles/scripts_version )
 readonly HELM_DEPLOYMENT="${PROJECT}-${ENV}"
 
 function rollback_on_fail() {
-  local ROLLBACK_FROM_STATUS=$1
+  local rollback_from_status=$1
   helm_cmd="helm -n $PROJECT"
   if $helm_cmd list -a | grep -q ${HELM_DEPLOYMENT} ; then
     current_status=$( $helm_cmd status ${HELM_DEPLOYMENT} --output json | jq -r '.info.status' )
-    if [[ "$current_status" =~ $ROLLBACK_FROM_STATUS ]] ; then
+    if [[ "$current_status" =~ $rollback_from_status ]] ; then
       echo "Previous helm deployment unsuccessul or not done"
       rollback_to=$( $helm_cmd history --output json ${HELM_DEPLOYMENT} \
         | jq -r 'map(select(.status == "superseded" or .status == "deployed" ).revision) | max' )
