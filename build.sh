@@ -33,34 +33,34 @@ eocre
   fi
 
   echo "Getting environment variables."
-  local JSON=$( mktemp )
-  local JSON_TEMPLATE=$( mktemp )
-  local JSON_FULL=$( mktemp )
-  aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} > $JSON_FULL
+  local json=$( mktemp )
+  local json_template=$( mktemp )
+  local json_full=$( mktemp )
+  aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} > $json_full
 
   if [[ $ENV == pr-${PR_NUM:-''} ]] ; then
-    aws --profile herokles ssm get-parameters --name /${PROJECT}/prs > $JSON_TEMPLATE # get all template envs
-    if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_TEMPLATE ) ]] ; then
+    aws --profile herokles ssm get-parameters --name /${PROJECT}/prs > $json_template # get all template envs
+    if [[ ! -z $( jq -r '.InvalidParameters | .[]' $json_template ) ]] ; then
       echo "Template PR variables /${PROJECT}/prs not found."
       exit 1
     fi
-    if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then # check if it's a new PR
+    if [[ ! -z $( jq -r '.InvalidParameters | .[]' $json_full ) ]] ; then # check if it's a new PR
       echo "New PR - setting to copy from /${PROJECT}/prs."
-      echo '{ "Parameters": [ { "Value": { } } ] }' > $JSON_FULL
+      echo '{ "Parameters": [ { "Value": { } } ] }' > $json_full
     fi
     # find new envs in /PROJECT/prs template, fill them in and push
     # $update file works a) for retrieving only the env var values from a rich JSON and b) as a condition checker for when to update pr-<num> parameter
     local update=$( mktemp )
-    jq -r '.Parameters | .[] | .Value' $JSON_FULL > $update
-    cat $update > $JSON
-    jq -r '.Parameters | .[] | .Value' $JSON_TEMPLATE > $update
-    cat $update > $JSON_TEMPLATE
+    jq -r '.Parameters | .[] | .Value' $json_full > $update
+    cat $update > $json
+    jq -r '.Parameters | .[] | .Value' $json_template > $update
+    cat $update > $json_template
     echo > $update
     local key val
-    for key in $( jq -r 'keys[]' $JSON_TEMPLATE ) ; do
-      if [[ $( jq -r .$key $JSON ) == null ]] ; then
-        cat $JSON | jq ".${key}=\"$( jq -r .$key $JSON_TEMPLATE )\"" > $update
-        cat $update > $JSON
+    for key in $( jq -r 'keys[]' $json_template ) ; do
+      if [[ $( jq -r .$key $json ) == null ]] ; then
+        cat $json | jq ".${key}=\"$( jq -r .$key $json_template )\"" > $update
+        cat $update > $json
       fi
     done
     if [[ -f ./herokles/set-custom-pr-envs.sh ]] ; then
@@ -68,27 +68,27 @@ eocre
       | while read line ; do
         key=$( echo "$line" | cut -d'=' -f1 )
         val=$( echo "$line" | cut -d'=' -f2- )
-        if [[ $( jq -r .$key $JSON ) == null ]] ; then
-          cat $JSON | jq ".${key}=\"${val}\"" > $update
-          cat $update > $JSON
+        if [[ $( jq -r .$key $json ) == null ]] ; then
+          cat $json | jq ".${key}=\"${val}\"" > $update
+          cat $update > $json
         fi
       done
     fi
     if [[ ! -z $( cat $update ) ]] ; then
       echo "Uploading new environment variables."
-      aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $JSON )"
+      aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $json )"
     fi
   else
-    if [[ ! -z $( jq -r '.InvalidParameters | .[]' $JSON_FULL ) ]] ; then
+    if [[ ! -z $( jq -r '.InvalidParameters | .[]' $json_full ) ]] ; then
       echo "Environment variables for /${PROJECT}/${ENV} not found."
       exit 1
     else
-      jq -r '.Parameters | .[] | .Value' $JSON_FULL > $JSON
+      jq -r '.Parameters | .[] | .Value' $json_full > $json
     fi
   fi
 
-  for key in $( jq -r 'keys[]' $JSON ) ; do
-    export $key="$( jq -r .$key $JSON )"
+  for key in $( jq -r 'keys[]' $json ) ; do
+    export $key="$( jq -r .$key $json )"
   done
 
   local install_tool_cmd build_tool_cmd install_params=${HEROKLES_INSTALL_PARAMS:-}
@@ -129,7 +129,10 @@ eocre
     fi
 
     echo "Uploading build to S3."
-    aws --profile herokles s3 cp product.tgz s3://${HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER}/ >/dev/null
+    aws --profile herokles s3 cp \
+      product.tgz \
+      s3://${HEROKLES_AWS_S3_BUILDS_BUCKET}/${HEROKLES_AWS_S3_BUILDS_FOLDER}/product.tgz \
+      >/dev/null
   fi
 }
 

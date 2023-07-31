@@ -51,17 +51,17 @@ eocre
   fi
 
   echo "Getting environment variables."
-  local JSON_FULL=$( aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} )
-  if [[ ! -z $( echo "$JSON_FULL" | jq -r '.InvalidParameters | .[]' ) ]] ; then
+  local json_full=$( aws --profile herokles ssm get-parameters --name /${PROJECT}/${ENV} )
+  if [[ ! -z $( echo "$json_full" | jq -r '.InvalidParameters | .[]' ) ]] ; then
     echo "Missing environment variables paramater ${PROJECT}-${ENV}"
     exit 1
   fi
 
   echo "secrets:" > herokles/helm/values-envs.yaml
-  local JSON=$( echo "$JSON_FULL" | jq -r '.Parameters | .[] | .Value' )
+  local json=$( echo "$json_full" | jq -r '.Parameters | .[] | .Value' )
   local key val
-  for key in $( echo "$JSON" | jq -r 'keys[]' ) ; do
-    val=$( echo "$JSON" | jq -r .$key )
+  for key in $( echo "$json" | jq -r 'keys[]' ) ; do
+    val=$( echo "$json" | jq -r .$key )
     if [[ $val == true ]] || [[ $val == false ]] || [[ $val =~ ^[0-9]+$ ]] ; then
       val=\"$val\"
     fi
@@ -95,7 +95,8 @@ eocre
     --set SHA=$SHA \
     --set PROJECT=$PROJECT \
     --set HEROKLES_AWS_REGION=$HEROKLES_AWS_REGION \
-    --set HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER=$HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER \
+    --set HEROKLES_AWS_S3_BUILDS_BUCKET=$HEROKLES_AWS_S3_BUILDS_BUCKET \
+    --set HEROKLES_AWS_S3_BUILDS_FOLDER=$HEROKLES_AWS_S3_BUILDS_FOLDER \
     --set BASE_VERSION=$BASE_VERSION \
     --set LANG_VERSION=$NODE_VERSION \
     || {
