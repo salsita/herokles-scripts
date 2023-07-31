@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-clean_modules() {
+function clean_modules() {
   local depth=1 to_del
   while true ; do
     to_del=$( find . -maxdepth $depth -type d -name node_modules )
@@ -15,22 +15,20 @@ clean_modules() {
   done
 }
 
-function main() {
-  if [[ ! -d ~/.aws ]] ; then
+function set_aws_creds() {
   echo "Configuring aws cli."
-  mkdir -p ~/.aws
-  cat > ~/.aws/config <<eoco
-[herokles]
-region = $HEROKLES_AWS_REGION
-eoco
+  local creds=(
+    "[herokles]"
+    "aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID"
+    "aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY"
+    "region = $HEROKLES_AWS_REGION"
+  )
+  mkdir ~/.aws
+  printf '%s\n' "${creds[@]}" > ~/.aws/credentials
+}
 
-  cat > ~/.aws/credentials <<eocre
-[herokles]
-aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
-aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
-region = $HEROKLES_AWS_REGION
-eocre
-  fi
+function main() {
+  [[ -d ~/.aws ]] || set_aws_creds
 
   echo "Getting environment variables."
   local json=$( mktemp )
@@ -119,7 +117,7 @@ eocre
     $build_tool_cmd herokles:prodinstall
   fi
 
-  if [[ -n "${HEROKLES_AWS_S3_BUILDS_BUCKET_FOLDER:-}" ]] ; then
+  if [[ -n "${HEROKLES_AWS_S3_BUILDS_BUCKET:-}${HEROKLES_AWS_S3_BUILDS_FOLDER:-}" ]] ; then
     if jq -e '.scripts."herokles:pack"' package.json >/dev/null ; then
       echo "Running $build_tool_cmd herokles:pack."
       $build_tool_cmd herokles:pack

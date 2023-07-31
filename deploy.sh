@@ -4,23 +4,21 @@ set -euo pipefail
 
 readonly LOG_FILE=/var/log/app.log
 
+function set_aws_creds() {
+  echo "Configuring aws cli."
+  local creds=(
+    "[herokles]"
+    "aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID"
+    "aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY"
+    "region = $HEROKLES_AWS_REGION"
+  )
+  mkdir ~/.aws
+  printf '%s\n' "${creds[@]}" > ~/.aws/credentials
+}
+
 function start() {
   echo "Starting main function."
-  if [[ ! -d ~/.aws ]] ; then
-    echo "Configuring aws cli."
-    mkdir -p ~/.aws
-    cat > ~/.aws/config <<eoco
-  [herokles]
-  region = $HEROKLES_AWS_REGION
-eoco
-
-    cat > ~/.aws/credentials <<eocre
-  [herokles]
-  aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
-  aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
-  region = $HEROKLES_AWS_REGION
-eocre
-  fi
+  [[ -d ~/.aws ]] || set_aws_creds
 
   echo "Getting build from S3."
   aws --profile herokles s3 cp \

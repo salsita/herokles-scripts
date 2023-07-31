@@ -7,22 +7,20 @@ function installHelm() {
   bash helm-installer --version v3.12.2
 }
 
-function main() {
-  if [[ ! -d ~/.aws ]] ; then
-    echo "Configuring aws cli."
-    mkdir -p ~/.aws
-    cat > ~/.aws/config <<eoco
-[herokles]
-region = $HEROKLES_AWS_REGION
-eoco
+function set_aws_creds() {
+  echo "Configuring aws cli."
+  local creds=(
+    "[herokles]"
+    "aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID"
+    "aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY"
+    "region = $HEROKLES_AWS_REGION"
+  )
+  mkdir ~/.aws
+  printf '%s\n' "${creds[@]}" > ~/.aws/credentials
+}
 
-    cat > ~/.aws/credentials <<eocre
-[herokles]
-aws_access_key_id = $HEROKLES_AWS_ACCESS_KEY_ID
-aws_secret_access_key = $HEROKLES_AWS_SECRET_ACCESS_KEY
-region = $HEROKLES_AWS_REGION
-eocre
-  fi
+function main() {
+  [[ -d ~/.aws ]] || set_aws_creds
 
   echo "Deleting environment variables."
   if [[ ${FORCE_UNINSTALL:-} != true ]] && [[ $ENV != pr-${PR_NUM} ]] ; then
