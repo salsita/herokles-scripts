@@ -27,7 +27,7 @@ function main() {
     echo "ENV has to be a PR or FORCE_UNINSTALL=true must be set."
     exit 1
   fi
-  aws --profile herokles ssm delete-parameter --name /${PROJECT}/${ENV}
+  aws --profile herokles ssm delete-parameter --name /${PROJECT}/${ENV} || echo "Parameterer /${PROJECT}/${ENV} not found."
 
   if [[ ! -d ~/.kube ]] && [[ -z ${KUBECONFIG:-} ]] ; then
     echo "Setting up kubectl and heml"
