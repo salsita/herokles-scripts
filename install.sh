@@ -11,7 +11,7 @@ readonly HELM_DEPLOYMENT="${PROJECT}-${ENV}"
 function rollback_on_fail() {
   local rollback_from_status=$1
   helm_cmd="helm -n $PROJECT"
-  if $helm_cmd list -a | grep -q ${HELM_DEPLOYMENT} ; then
+  if $helm_cmd list -a | sed 1d | awk '{ print $1 }' | grep -q ^${HELM_DEPLOYMENT}$ ; then
     current_status=$( $helm_cmd status ${HELM_DEPLOYMENT} --output json | jq -r '.info.status' )
     if [[ "$current_status" =~ $rollback_from_status ]] ; then
       echo "Previous helm deployment unsuccessul or not done"
