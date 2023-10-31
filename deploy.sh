@@ -45,7 +45,7 @@ function main() {
   touch $LOG_FILE
   tail -f $LOG_FILE &
 
-  if [ -n ${HEROKLES_PAPERTRAIL_BASE64:-} ] ; then
+  if [ -n "${HEROKLES_PAPERTRAIL_BASE64:-}" ] ; then
     echo "${HEROKLES_PAPERTRAIL_BASE64}" | base64 -d > /etc/log_files.yml
     remote_syslog -D --hostname $( hostname ) &
     sleep 3
