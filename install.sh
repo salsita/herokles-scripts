@@ -57,6 +57,10 @@ function main() {
 
   echo "secrets:" > herokles/helm/values-envs.yaml
   local json=$( echo "$json_full" | jq -r '.Parameters | .[] | .Value' )
+  echo "$json" | jq . >/dev/null || {
+    echo "Formatting error in AWS Parameter store environment variables."
+    exit 1
+  }
   local key val
   for key in $( echo "$json" | jq -r 'keys[]' ) ; do
     val=$( echo "$json" | jq -r .$key )
