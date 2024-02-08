@@ -66,7 +66,7 @@ for ns in $NAMESPACES ; do
     echo ""
 
     # show current running deployments
-    DEPLOYMENTS=$( kubectl get deployments -n "$ns" )
+    DEPLOYMENTS=$( kubectl get deployments -n "$ns" --no-headers -o custom-columns=":metadata.name" )
     if ! echo "$DEPLOYMENTS" | grep -E -- "-pr-[0-9]+" > /dev/null ; then
         echo "No PR deployments running in Kube $ns namespace so skipping cleanup for this namespace"
          continue
