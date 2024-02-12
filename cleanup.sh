@@ -96,9 +96,21 @@ for ns in $NAMESPACES ; do
     echo "$CLOSED_PRS" | tr '\n' ' '
     echo ""
     echo ""
-    echo "let's show all closed PRs which still sits in Herokles"
-    
 
+    # for testing
+    DEPL_NUMBERS=$(echo -e "1\n2\n3\n4")
+    CLOSED_PRS=$(echo -e "3\n4\n5\n6")
+    echo "using DEPL_NUMBERS $(echo "$DEPL_NUMBERS" | tr '\n' ' ') and CLOSED_PRS $(echo "$CLOSED_PRS" | tr '\n' ' ') for testing"  
+    echo ""
+
+    # get numbers of PRs to delete from Herokles
+    echo "These PRs (or their parts) are still sitting in Herokles and will be deleted:"
+    for num in $DEPL_NUMBERS; do
+        if echo "$CLOSED_PRS" | grep -Fxq "$num"; then
+        TO_CLOSE+="$num "
+        fi
+    done
+    echo "PRs to close: $TO_CLOSE"
 done
 
 exit 0
