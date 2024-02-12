@@ -52,7 +52,9 @@ echo "All credentials set correctly, all tools are installed."
 
 # list of all namespaces in Herokles cluster - we will use this as list of ns where cleaning will happen
 echo ""
-NAMESPACES=$( kubectl get ns --no-headers -o custom-columns=":metadata.name" | grep -vE '^kube-|^default$' | awk '/./' )
+#NAMESPACES=$( kubectl get ns --no-headers -o custom-columns=":metadata.name" | grep -vE '^kube-|^default$' | awk '/./' )
+# use azenco for testing
+NAMESPACES=azenco
 echo "Herokles now contains these namespaces:"
 echo "$NAMESPACES"
 echo ""
@@ -81,6 +83,16 @@ for ns in $NAMESPACES ; do
     CLOSED_PRS=$( gh pr list -R "$REPO" -s closed -L 100000 --json number -q '.[].number' )
     echo "$CLOSED_PRS" | tr '\n' ' '
     echo ""
+
+    echo "let's show all closed PRs which still sits in Herokles"
+    
+    for depl in $DEPLOYMENTS ; do
+        echo "Deployment to check is $depl"
+        if echo "$depl" | grep -oE [0-9]+ -eq 205 ; then
+            echo "$depl will be removed"
+        fi
+    done
+
 done
 
 exit 0
