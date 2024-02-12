@@ -1,7 +1,7 @@
-#!/usr/local/bin/bash
+#!/opt/homebrew/bin/bash
 set -euo pipefail
 
-# notice non-standard bash path - using this on mac os x 
+# notice non-standard bash path - using this on mac os x
 
 # check bash version because of associative array
 if [ "${BASH_VERSION%%.*}" -lt 4 ]; then
@@ -74,8 +74,20 @@ for ns in $NAMESPACES ; do
          continue
     fi
     DEPLOYMENTS=$( echo "$DEPLOYMENTS" | grep -E -- "-pr-[0-9]+" ) > /dev/null
-    echo "These PRs are running in $ns namespace as deployments:"
+    echo "These deployment are in $ns namespace: ..."
     echo "$DEPLOYMENTS"
+    echo ""
+
+    # get numbers from deployment name - review, simplify, decode 
+    DEPL_NUMBERS=""
+    for depl in $DEPLOYMENTS; do
+        if echo "$depl" | grep -qE "${ns}-(postgres-)?pr-[0-9]+$"; then
+        number=$(echo "$depl" | sed -E 's/.*pr-([0-9]+)$/\1/')
+        DEPL_NUMBERS+="$number "
+        fi
+    done
+    DEPL_NUMBERS=$(echo "$DEPL_NUMBERS" | xargs | tr ' ' '\n' | sort -n | uniq ) # | tr '\n' ' '
+    echo "... -> these are the PRs (or parts of them) in Herokles: $(echo "$DEPL_NUMBERS" | tr '\n' ' ')"
     echo ""
 
     # get closed PRs for repo
@@ -83,15 +95,9 @@ for ns in $NAMESPACES ; do
     CLOSED_PRS=$( gh pr list -R "$REPO" -s closed -L 100000 --json number -q '.[].number' )
     echo "$CLOSED_PRS" | tr '\n' ' '
     echo ""
-
+    echo ""
     echo "let's show all closed PRs which still sits in Herokles"
     
-    for depl in $DEPLOYMENTS ; do
-        echo "Deployment to check is $depl"
-        if echo "$depl" | grep -oE [0-9]+ -eq 205 ; then
-            echo "$depl will be removed"
-        fi
-    done
 
 done
 
