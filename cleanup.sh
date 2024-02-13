@@ -1,4 +1,5 @@
 #!/opt/homebrew/bin/bash
+
 set -euo pipefail
 
 # notice non-standard bash path - using this on mac os x
@@ -51,21 +52,19 @@ echo "There is no AWS credentials check yet"
 echo "All credentials set correctly, all tools are installed."
 
 # list of all namespaces in Herokles cluster - we will use this as list of ns where cleaning will happen
-echo ""
-#NAMESPACES=$( kubectl get ns --no-headers -o custom-columns=":metadata.name" | grep -vE '^kube-|^default$' | awk '/./' )
-# use azenco for testing
-NAMESPACES=azenco
+echo
+NAMESPACES=$( kubectl get ns --no-headers -o custom-columns=":metadata.name" | grep -vE '^kube-|^default$' | awk '/./' )
 echo "Herokles now contains these namespaces:"
 echo "$NAMESPACES"
-echo ""
+echo
 
 # loop to show deployments and closed PRs for all defined namespaces
 for ns in $NAMESPACES ; do
-    echo ""
+    echo
     echo "Project to clean: $ns"
     REPO=${gh_repos["$ns"]}
     echo "GitHub repository is $REPO"
-    echo ""
+    echo
 
     # show current running deployments
     DEPLOYMENTS=$( kubectl get deployments -n "$ns" --no-headers -o custom-columns=":metadata.name" )
@@ -76,7 +75,7 @@ for ns in $NAMESPACES ; do
     DEPLOYMENTS=$( echo "$DEPLOYMENTS" | grep -E -- "-pr-[0-9]+" ) > /dev/null
     echo "These deployment are in $ns namespace: ..."
     echo "$DEPLOYMENTS"
-    echo ""
+    echo
 
     # get numbers from deployment name - review, simplify, decode 
     DEPL_NUMBERS=""
@@ -88,52 +87,51 @@ for ns in $NAMESPACES ; do
     done
     DEPL_NUMBERS=$(echo "$DEPL_NUMBERS" | xargs | tr ' ' '\n' | sort -n | uniq ) # | tr '\n' ' '
     echo "... -> these are the PRs (or parts of them) in Herokles: $(echo "$DEPL_NUMBERS" | tr '\n' ' ')"
-    echo ""
+    echo
 
     # get closed PRs for repo
     echo "These PRs are closed in $REPO repository:"
     CLOSED_PRS=$( gh pr list -R "$REPO" -s closed -L 100000 --json number -q '.[].number' )
     echo "$CLOSED_PRS" | tr '\n' ' '
-    echo ""
-    echo ""
+    echo
 
-    # for testing
-    DEPL_NUMBERS=$(echo -e "1\n2\n3\n4")
-    CLOSED_PRS=$(echo -e "3\n4\n5\n6")
-    echo "using DEPL_NUMBERS $(echo "$DEPL_NUMBERS" | tr '\n' ' ') and CLOSED_PRS $(echo "$CLOSED_PRS" | tr '\n' ' ') for testing"  
-    echo ""
+    # for testing, will be deleted 
+    #DEPL_NUMBERS=$(echo -e "1\n2\n3\n4")
+    #CLOSED_PRS=$(echo -e "3\n4\n5\n6")
+    #echo "using DEPL_NUMBERS $(echo "$DEPL_NUMBERS" | tr '\n' ' ') and CLOSED_PRS $(echo "$CLOSED_PRS" | tr '\n' ' ') for testing"  
+    #echo
 
     # get numbers of PRs to delete from Herokles
-    echo "These PRs (or their parts) are still sitting in Herokles and will be deleted:"
+    echo
     for num in $DEPL_NUMBERS; do
         if echo "$CLOSED_PRS" | grep -Fxq "$num"; then
         TO_CLOSE+="$num "
         fi
     done
-    echo "PRs to close: $TO_CLOSE"
+    if [ -n "${TO_CLOSE+x}" ]; then
+        echo "These PRs (or their parts) are still sitting in Herokles $ns namespace and will be deleted: $TO_CLOSE"
+        for pr in $TO_CLOSE; do
+            echo "Running unistall script for PR $pr, namespace $ns and repo $REPO"
+            ./fake.sh $ns $pr || exit=$?
+            if [ -z ${exit+x} ]; then
+                echo "Unistall.sh for $ns:$pr went well."
+                SUMMARY+="$ns:$pr uninstalled."$'\n'
+            else
+                echo "Unistall.sh for $ns:$pr crashed with exit code $exit."
+                SUMMARY+="$ns:$pr crashed with exit code $exit."$'\n'
+                unset exit
+            fi
+            unset TO_CLOSE
+        done
+    else
+        echo "nothing to close in namespace $ns"
+    fi
 done
 
-exit 0
-
-#-------------------------------------------
-# let's just test workflow with azenco repo for now
-# which repo am I cleaning?
-
-REPO=salsita/configurator-azenco
-KUBE_NS=azenco
-echo ""
-echo "Let's clean $REPO repository"
-echo "Kube NS is $KUBE_NS"
-
-# get open PRs for repo
-
-echo ""
-echo "These PRs are closed in $REPO repository:"
-CLOSED_PRS=$( gh pr list -R $REPO -s closed -L 100000 --json number -q '.[].number' )
-echo "$CLOSED_PRS"
-
-# show current running deployments
-
-echo ""
-echo "These PRs are running in $KUBE_NS namespace as deployments:"
-kubectl get deployments -n azenco | grep -E -- "-pr-[0-9]+" 
+# summary of job done
+echo "Summary:"
+if [ -n "${SUMMARY+x}" ]; then
+    echo "$SUMMARY"
+else
+    echo "No deployments in Herokles were closed"
+fi
