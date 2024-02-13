@@ -70,7 +70,7 @@ for ns in $NAMESPACES ; do
     DEPLOYMENTS=$( kubectl get deployments -n "$ns" --no-headers -o custom-columns=":metadata.name" )
     if ! echo "$DEPLOYMENTS" | grep -E -- "-pr-[0-9]+" > /dev/null ; then
         echo "No PR deployments running in Kube $ns namespace so skipping cleanup for this namespace"
-         continue
+        continue
     fi
     DEPLOYMENTS=$( echo "$DEPLOYMENTS" | grep -E -- "-pr-[0-9]+" ) > /dev/null
     echo "These deployment are in $ns namespace: ..."
@@ -108,6 +108,7 @@ for ns in $NAMESPACES ; do
         TO_CLOSE+="$num "
         fi
     done
+    # run unistall script for running deployments of closed PRs
     if [ -n "${TO_CLOSE+x}" ]; then
         echo "These PRs (or their parts) are still sitting in Herokles $ns namespace and will be deleted: $TO_CLOSE"
         for pr in $TO_CLOSE; do
