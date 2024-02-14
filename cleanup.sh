@@ -1,4 +1,4 @@
-#!/opt/homebrew/bin/bash
+#!/usr/local/bin/bash
 
 set -euo pipefail
 
@@ -113,7 +113,7 @@ for ns in $NAMESPACES ; do
         echo "These PRs (or their parts) are still sitting in Herokles $ns namespace and will be deleted: $TO_CLOSE"
         for pr in $TO_CLOSE; do
             echo "Running unistall script for PR $pr, namespace $ns and repo $REPO"
-            ./fake.sh $ns $pr || exit=$?
+            ./uninstall_local.sh $ns $pr || exit=$?
             if [ -z ${exit+x} ]; then
                 echo "Unistall.sh for $ns:$pr went well."
                 SUMMARY+="$ns:$pr uninstalled."$'\n'
