@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PROJECT=$1
-ENV=$2
+ENV="pr-$2"
 
 echo "Deleting environment variables: $PROJECT:$ENV"
 echo "#commented"

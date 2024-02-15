@@ -47,8 +47,16 @@ else
     exit 1
 fi
 
-# !!! add AWS credentials check
-echo "There is no AWS credentials check yet"
+echo "You are using this AWS identity:"
+aws sts get-caller-identity
+
+if aws ssm describe-parameters --query 'Parameters[].Name' --output json | grep -q secretshare ; then # this is tested on secretshare for now but how to do it?
+    echo "You have access to AWS parameter store"
+else
+    echo "You don't have access to the right AWS parametere store"
+    exit 1
+fi
+
 echo "All credentials set correctly, all tools are installed."
 
 # list of all namespaces in Herokles cluster - we will use this as list of ns where cleaning will happen
