@@ -43,7 +43,7 @@ fi
 if gh repo view salsita/herokles  | grep -q "herokles"; then
     echo "You can view Salsita's Herokles GH repo."
 else
-    echo "Something's wrong with gh cli. Maybe login? - please run:  gh auth login"
+    echo "Something's wrong with gh cli. Maybe login? (gh auth login)"
     exit 1
 fi
 
@@ -64,7 +64,7 @@ echo
 NAMESPACES=$( kubectl get ns --no-headers -o custom-columns=":metadata.name" | grep -vE '^kube-|^default$' | awk '/./' )
 echo "Herokles now contains these namespaces:"
 echo "$NAMESPACES"
-echo
+echo # using quite a lot of simple echos for nicer output. how to do it?
 
 # loop to show deployments and closed PRs for all defined namespaces
 for ns in $NAMESPACES ; do
@@ -93,7 +93,7 @@ for ns in $NAMESPACES ; do
         DEPL_NUMBERS+="$number "
         fi
     done
-    DEPL_NUMBERS=$(echo "$DEPL_NUMBERS" | xargs | tr ' ' '\n' | sort -n | uniq ) # | tr '\n' ' '
+    DEPL_NUMBERS=$(echo "$DEPL_NUMBERS" | xargs | tr ' ' '\n' | sort -n | uniq )
     echo "... -> these are the PRs (or parts of them) in Herokles: $(echo "$DEPL_NUMBERS" | tr '\n' ' ')"
     echo
 
@@ -144,3 +144,7 @@ if [ -n "${SUMMARY+x}" ]; then
 else
     echo "No deployments in Herokles were closed"
 fi
+
+# should we actually run two checks? one to check herokles and close deployments, one for aws to check parameter store and remove old parameters. what if PR was removed in Herokles but still sits in AWS? Current approach is: check kube, find closed prs, unistall deployment in kube AND remove AWS param.
+# keeping testing part around line 106 for now
+# script will show you that some PRs were uninstalled - not yet, uninstall_local.sh is harmless for now
