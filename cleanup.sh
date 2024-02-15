@@ -43,7 +43,7 @@ fi
 if gh repo view salsita/herokles  | grep -q "herokles"; then
     echo "You can view Salsita's Herokles GH repo."
 else
-    echo "Get started with GitHub CLI - please run:  gh auth login"
+    echo "Something's wrong with gh cli. Maybe login? - please run:  gh auth login"
     exit 1
 fi
 
