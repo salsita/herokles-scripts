@@ -1,31 +1,28 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -euo pipefail
 
-# notice non-standard bash path - using this on mac os x
-
 # check bash version because of associative array
-if [ "${BASH_VERSION%%.*}" -lt 4 ]; then
-    echo "Bash version 4 or greater is required, your version is $BASH_VERSION."
-    exit 1
-fi
+#if [ "${BASH_VERSION%%.*}" -lt 4 ]; then
+#    echo "Bash version 4 or greater is required, your version is $BASH_VERSION."
+#    exit 1
+#fi
 
-# declaration of possible namespaces and repo, let's keep this at the beginning to keep it nice. should we later source this from external file? 
-declare -A gh_repos=(
-    ["ndim"]="salsita/ndimensional"
-    ["aluliving"]="salsita/configurator-aluliving"
-    ["moduline"]="salsita/configurator-moduline"
-    ["secretshare"]="salsita/secretshare"
-    ["chilli"]="salsita/configurator-chilli"
-    ["centro"]="salsita/configurator-centro"
-    ["easysteel"]="salsita/configurator-easysteel"
-    ["kilo"]="salsita/configurator-kilo"
-    ["latelier"]="salsita/configurator-latelier"
-    ["conf-playground"]="salsita/configurator-sdk"
-    ["car"]="salsita/configurator-car"
-    ["azenco"]="salsita/configurator-azenco"
-    ["phoenix"]="salsita/configurator-phoenix"
-)
+#declare -A gh_repos=(
+#    ["ndim"]="salsita/ndimensional"
+#    ["aluliving"]="salsita/configurator-aluliving"
+#    ["moduline"]="salsita/configurator-moduline"
+#    ["secretshare"]="salsita/secretshare"
+#    ["chilli"]="salsita/configurator-chilli"
+#    ["centro"]="salsita/configurator-centro"
+#    ["easysteel"]="salsita/configurator-easysteel"
+#    ["kilo"]="salsita/configurator-kilo"
+#    ["latelier"]="salsita/configurator-latelier"
+#    ["conf-playground"]="salsita/configurator-sdk"
+#    ["car"]="salsita/configurator-car"
+#    ["azenco"]="salsita/configurator-azenco"
+#    ["phoenix"]="salsita/configurator-phoenix"
+#)
 
 # check - all tools are installed
 kubectl version --client
@@ -70,7 +67,16 @@ echo # using quite a lot of simple echos for nicer output. how to do it?
 for ns in $NAMESPACES ; do
     echo
     echo "Project to clean: $ns"
-    REPO=${gh_repos["$ns"]}
+    if [ "$ns" = "secretshare" ]; then
+        REPO="salsita/secretshare"
+    elif [ "$ns" = "conf-playground" ]; then
+        REPO="salsita/configurator-sdk"
+    elif [ "$ns" = "ndim" ] || [ "$ns" = "phoenix" ]; then
+        echo "Skipping namespace $ns..."
+        continue
+    else
+        REPO="salsita/configurator-$ns"
+    fi
     echo "GitHub repository is $REPO"
     echo
 
@@ -146,5 +152,5 @@ else
 fi
 
 # should we actually run two checks? one to check herokles and close deployments, one for aws to check parameter store and remove old parameters. what if PR was removed in Herokles but still sits in AWS? Current approach is: check kube, find closed prs, unistall deployment in kube AND remove AWS param.
-# keeping testing part around line 106 for now
+# keeping testing part around line 112 for now
 # script will show you that some PRs were uninstalled - not yet, uninstall_local.sh is harmless for now
