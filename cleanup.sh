@@ -71,7 +71,7 @@ for ns in $NAMESPACES ; do
         REPO="salsita/secretshare"
     elif [ "$ns" = "conf-playground" ]; then
         REPO="salsita/configurator-sdk"
-    elif [ "$ns" = "ndim" ] || [ "$ns" = "phoenix" ]; then
+    elif [ "$ns" = "phoenix" ]; then
         echo "Skipping namespace $ns..."
         continue
     else
