@@ -2,34 +2,10 @@
 
 set -euo pipefail
 
-# check bash version because of associative array
-#if [ "${BASH_VERSION%%.*}" -lt 4 ]; then
-#    echo "Bash version 4 or greater is required, your version is $BASH_VERSION."
-#    exit 1
-#fi
-
-#declare -A gh_repos=(
-#    ["ndim"]="salsita/ndimensional"
-#    ["aluliving"]="salsita/configurator-aluliving"
-#    ["moduline"]="salsita/configurator-moduline"
-#    ["secretshare"]="salsita/secretshare"
-#    ["chilli"]="salsita/configurator-chilli"
-#    ["centro"]="salsita/configurator-centro"
-#    ["easysteel"]="salsita/configurator-easysteel"
-#    ["kilo"]="salsita/configurator-kilo"
-#    ["latelier"]="salsita/configurator-latelier"
-#    ["conf-playground"]="salsita/configurator-sdk"
-#    ["car"]="salsita/configurator-car"
-#    ["azenco"]="salsita/configurator-azenco"
-#    ["phoenix"]="salsita/configurator-phoenix"
-#)
-
-# check - all tools are installed
 kubectl version --client
 aws --version
 gh version
 
-# check - credentials for all endpoints
 if kubectl config view | grep -q "herokles"; then
     echo "You have the right Herokles kubectl config, let's go on!"
 else
@@ -47,7 +23,7 @@ fi
 echo "You are using this AWS identity:"
 aws sts get-caller-identity
 
-if aws ssm describe-parameters --query 'Parameters[].Name' --output json | grep -q secretshare ; then # this is tested on secretshare for now but how to do it?
+if aws ssm describe-parameters --query 'Parameters[].Name' --output json | grep -q secretshare ; then
     echo "You have access to AWS parameter store"
 else
     echo "You don't have access to the right AWS parametere store"
@@ -56,14 +32,12 @@ fi
 
 echo "All credentials set correctly, all tools are installed."
 
-# list of all namespaces in Herokles cluster - we will use this as list of ns where cleaning will happen
 echo
 NAMESPACES=$( kubectl get ns --no-headers -o custom-columns=":metadata.name" | grep -vE '^kube-|^default$' | awk '/./' )
 echo "Herokles now contains these namespaces:"
 echo "$NAMESPACES"
-echo # using quite a lot of simple echos for nicer output. how to do it?
+echo
 
-# loop to show deployments and closed PRs for all defined namespaces
 for ns in $NAMESPACES ; do
     echo
     echo "Project to clean: $ns"
@@ -80,7 +54,6 @@ for ns in $NAMESPACES ; do
     echo "GitHub repository is $REPO"
     echo
 
-    # show current running deployments
     DEPLOYMENTS=$( kubectl get deployments -n "$ns" --no-headers -o custom-columns=":metadata.name" )
     if ! echo "$DEPLOYMENTS" | grep -E -- "-pr-[0-9]+" > /dev/null ; then
         echo "No PR deployments running in Kube $ns namespace so skipping cleanup for this namespace"
@@ -91,7 +64,6 @@ for ns in $NAMESPACES ; do
     echo "$DEPLOYMENTS"
     echo
 
-    # get numbers from deployment name - review, simplify, decode 
     DEPL_NUMBERS=""
     for depl in $DEPLOYMENTS; do
         if echo "$depl" | grep -qE "${ns}-(postgres-)?pr-[0-9]+$"; then
@@ -103,26 +75,18 @@ for ns in $NAMESPACES ; do
     echo "... -> these are the PRs (or parts of them) in Herokles: $(echo "$DEPL_NUMBERS" | tr '\n' ' ')"
     echo
 
-    # get closed PRs for repo
     echo "These PRs are closed in $REPO repository:"
     CLOSED_PRS=$( gh pr list -R "$REPO" -s closed -L 100000 --json number -q '.[].number' )
     echo "$CLOSED_PRS" | tr '\n' ' '
     echo
 
-    # for testing, will be deleted 
-    #DEPL_NUMBERS=$(echo -e "1\n2\n3\n4")
-    #CLOSED_PRS=$(echo -e "3\n4\n5\n6")
-    #echo "using DEPL_NUMBERS $(echo "$DEPL_NUMBERS" | tr '\n' ' ') and CLOSED_PRS $(echo "$CLOSED_PRS" | tr '\n' ' ') for testing"  
-    #echo
-
-    # get numbers of PRs to delete from Herokles
     echo
     for num in $DEPL_NUMBERS; do
         if echo "$CLOSED_PRS" | grep -Fxq "$num"; then
         TO_CLOSE+="$num "
         fi
     done
-    # run unistall script for running deployments of closed PRs
+
     if [ -n "${TO_CLOSE+x}" ]; then
         echo "These PRs (or their parts) are still sitting in Herokles $ns namespace and will be deleted: $TO_CLOSE"
         for pr in $TO_CLOSE; do
@@ -143,14 +107,9 @@ for ns in $NAMESPACES ; do
     fi
 done
 
-# summary of job done
 echo "Summary:"
 if [ -n "${SUMMARY+x}" ]; then
     echo "$SUMMARY"
 else
     echo "No deployments in Herokles were closed"
 fi
-
-# should we actually run two checks? one to check herokles and close deployments, one for aws to check parameter store and remove old parameters. what if PR was removed in Herokles but still sits in AWS? Current approach is: check kube, find closed prs, unistall deployment in kube AND remove AWS param.
-# keeping testing part around line 112 for now
-# script will show you that some PRs were uninstalled - not yet, uninstall_local.sh is harmless for now
