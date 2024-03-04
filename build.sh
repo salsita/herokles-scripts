@@ -91,7 +91,11 @@ function main() {
 
   local install_tool_cmd build_tool_cmd install_params=${HEROKLES_INSTALL_PARAMS:-}
 
-  if [[ -f yarn.lock ]] ; then
+  if [[ -f pnpm-lock.yaml ]] ; then
+    echo "Using PNPM."
+    install_tool_cmd="pnpm install"
+    build_tool_cmd=pnpm
+  elif [[ -f yarn.lock ]] ; then
     echo "Using Yarn."
     install_tool_cmd="yarn --immutable"
     build_tool_cmd=yarn
