@@ -93,6 +93,7 @@ function main() {
 
   if [[ -f pnpm-lock.yaml ]] ; then
     echo "Using PNPM."
+    npm install -g $( jq -r .packageManager package.json )
     install_tool_cmd="pnpm install"
     build_tool_cmd=pnpm
   elif [[ -f yarn.lock ]] ; then
