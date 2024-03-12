@@ -45,6 +45,8 @@ for ns in $NAMESPACES ; do
         REPO="salsita/secretshare"
     elif [ "$ns" = "conf-playground" ]; then
         REPO="salsita/configurator-sdk"
+    elif [ "$ns" = "azenco-quoting" ]; then
+        REPO="salsita/azenco-quoting"
     elif [ "$ns" = "phoenix" ]; then
         echo "Skipping namespace $ns..."
         continue
