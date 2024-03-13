@@ -32,6 +32,20 @@ fi
 
 echo "All credentials set correctly, all tools are installed."
 
+GH_REPOS="aluliving:salsita/configurator-aluliving
+moduline:salsita/configurator-moduline
+secretshare:salsita/secretshare
+chilli:salsita/configurator-chilli
+centro:salsita/configurator-centro
+easysteel:salsita/configurator-easysteel
+kilo:salsita/configurator-kilo
+latelier:salsita/configurator-latelier
+conf-playground:salsita/configurator-sdk
+car:salsita/configurator-car
+azenco:salsita/configurator-azenco
+phoenix:salsita/configurator-phoenix
+azenco-quoting:salsita/azenco-quoting"
+
 echo
 NAMESPACES=$( kubectl get ns --no-headers -o custom-columns=":metadata.name" | grep -vE '^kube-|^default$' | awk '/./' )
 echo "Herokles now contains these namespaces:"
@@ -41,24 +55,20 @@ echo
 for ns in $NAMESPACES ; do
     echo
     echo "Project to clean: $ns"
-    if [ "$ns" = "secretshare" ]; then
-        REPO="salsita/secretshare"
-    elif [ "$ns" = "conf-playground" ]; then
-        REPO="salsita/configurator-sdk"
-    elif [ "$ns" = "azenco-quoting" ]; then
-        REPO="salsita/azenco-quoting"
-    elif [ "$ns" = "phoenix" ]; then
-        echo "Skipping namespace $ns..."
+    if ! echo "$GH_REPOS" | grep "^$ns:" > /dev/null ; then
+        echo "GH repo for $ns namespace not defined, skipping"
+        SUMMARY+="$ns skipped - GH repo not defined."$'\n'
         continue
-    else
-        REPO="salsita/configurator-$ns"
     fi
+    MY_GH_REPO=$(echo "$GH_REPOS" | grep "^$ns:")
+    REPO="${MY_GH_REPO#*:}"
     echo "GitHub repository is $REPO"
     echo
 
     DEPLOYMENTS=$( kubectl get deployments -n "$ns" --no-headers -o custom-columns=":metadata.name" )
     if ! echo "$DEPLOYMENTS" | grep -E -- "-pr-[0-9]+" > /dev/null ; then
         echo "No PR deployments running in Kube $ns namespace so skipping cleanup for this namespace"
+        SUMMARY+="no prs in kube - $ns"$'\n'
         continue
     fi
     DEPLOYMENTS=$( echo "$DEPLOYMENTS" | grep -E -- "-pr-[0-9]+" ) > /dev/null
@@ -106,12 +116,13 @@ for ns in $NAMESPACES ; do
         done
     else
         echo "nothing to close in namespace $ns"
+        SUMMARY+="nothing to close in namespace $ns"$'\n'
     fi
 done
 
 echo "Summary:"
 if [ -n "${SUMMARY+x}" ]; then
-    echo "$SUMMARY"
+    echo "$SUMMARY" | sort
 else
     echo "No deployments in Herokles were closed"
 fi
