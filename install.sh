@@ -63,7 +63,7 @@ function main() {
   }
   local key val
   for key in $( echo "$json" | jq -r 'keys[]' ) ; do
-    val=$( echo "$json" | jq -r .$key )
+    val=$( echo "$json" | jq .$key )
     if [[ $val == true ]] || [[ $val == false ]] || [[ $val =~ ^[0-9]+$ ]] ; then
       val=\"$val\"
     fi
