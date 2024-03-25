@@ -74,7 +74,7 @@ function main() {
     fi
     if [[ ! -z $( cat $update ) ]] ; then
       echo "Uploading new environment variables."
-      aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -c . $json )"
+      aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
     fi
   else
     if [[ ! -z $( jq -r '.InvalidParameters | .[]' $json_full ) ]] ; then
