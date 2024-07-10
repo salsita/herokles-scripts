@@ -2,11 +2,11 @@
 
 set -euo pipefail
 
-awsparams=$(mktemp)
-deployments=$(mktemp)
-to_close=$(mktemp)
-summary=$(mktemp)
-trap 'rm -f "$awsparams" "$to_close" "$deployments" "summary"' EXIT
+AWSPARAMS=$(mktemp)
+DEPLOYMENTS=$(mktemp)
+TO_CLOSE=$(mktemp)
+SUMMARY=$(mktemp)
+trap 'rm -f "$AWSPARAMS" "$TO_CLOSE" "$DEPLOYMENTS" "SUMMARY"' EXIT
 
 DAYS=
 read -p "Do you want to clean PRs older than a certain number of days? (y/n): " response
@@ -50,37 +50,37 @@ echo -e "Kube namespaces:\n$NAMESPACES"
 
 for ns in $NAMESPACES; do
   echo -e "\nProject to clean: $ns"
-  > "$awsparams"
-  > "$deployments"
-  > "$to_close"
-  echo "$AWS_PARAMS" | grep "^/$ns/pr-[0-9]\+" | grep -o 'pr-[0-9]\+$' | grep -o '[0-9]\+$' | sort -un > "$awsparams" || true
+  echo > "$AWSPARAMS"
+  echo > "$DEPLOYMENTS"
+  echo > "$TO_CLOSE"
+  echo "$AWS_PARAMS" | grep "^/$ns/pr-[0-9]\+" | grep -o 'pr-[0-9]\+$' | grep -o '[0-9]\+$' | sort -un > "$AWSPARAMS" || true
   kubectl get deployments -n "$ns" --no-headers -o custom-columns=":metadata.name" | grep -o 'pr-[0-9]\+$' | grep -o '[0-9]\+$' | sort -u > "$deployments" || true
   gh_repo=$(echo "$GH_REPOS" | grep "^$ns:" | cut -d ':' -f 2-) || {
     echo "no gh repo for $ns defined"
     continue
   }
-  gh pr list -R "$gh_repo" -s closed -L 100000 --json number -q '.[].number' > "$to_close"
+  gh pr list -R "$gh_repo" -s closed -L 100000 --json number -q '.[].number' > "$TO_CLOSE"
   if [[ -n "$DAYS" ]]; then
-    gh pr list -R "$gh_repo" -s open -L 100000 --json number,createdAt | jq --arg date "$(date -v-"${DAYS}"d -u +"%Y-%m-%dT%H:%M:%SZ")" '.[] | select(.createdAt < $date) | .number' >> "$to_close"
+    gh pr list -R "$gh_repo" -s open -L 100000 --json number,createdAt | jq --arg date "$(date -v-"${DAYS}"d -u +"%Y-%m-%dT%H:%M:%SZ")" '.[] | select(.createdAt < $date) | .number' >> "$TO_CLOSE"
   fi
-  sort -uo "$to_close" "$to_close"
-comm -12 "$awsparams" "$to_close" | while read param; do
+  sort -uo "$TO_CLOSE" "$TO_CLOSE"
+  comm -12 "$AWSPARAMS" "$TO_CLOSE" | while read param; do
     echo "Closing pr-$param in $ns aws ssm"
     if [[ "${1:-}" == "hot" ]]; then
       aws --profile herokles ssm delete-parameter --name /${ns}/${param} || echo "Parameterer /${ns}/${param} not found."
-      echo "AWS parameter removed: $ns:$param" >> "$summary"
+      echo "AWS parameter removed: $ns:$param" >> "$SUMMARY"
     else
-      echo "Dry run: AWS parameter removed: $ns:$param" >> "$summary"
+      echo "Dry run: AWS parameter removed: $ns:$param" >> "$SUMMARY"
     fi
-done
-comm -12 "$deployments" "$to_close" | while read depl; do
+  done
+  comm -12 "$DEPLOYMENTS" "$TO_CLOSE" | while read depl; do
     echo "Unistalling pr-$depl in $ns Kube"
     if [[ "${1:-}" == "hot" ]]; then
       helm uninstall -n ${ns} ${ns}-${depl} --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s}
-      echo "Kube deployment removed: $ns:$depl" >> "$summary"
+      echo "Kube deployment removed: $ns:$depl" >> "$SUMMARY"
     else
-      echo "Dry run: Kube deployment removed: $ns:$depl" >> "$summary"
+      echo "Dry run: Kube deployment removed: $ns:$depl" >> "$SUMMARY"
     fi
+  done
 done
-done
-sort "$summary" | sort || echo "No deployments in Herokles were closed"
+sort "$SUMMARY" | sort || echo "No deployments in Herokles were closed"
