@@ -21,18 +21,21 @@ function cleanAwsHot() {
   aws --profile herokles ssm delete-parameter --name /${ns}/${param} || echo "Parameterer /${ns}/${param} not found."
   echo "AWS parameter removed: $ns:$param" >> "$SUMMARY"
 }
+
 function cleanKubeHot() {
   helm uninstall -n ${ns} ${ns}-${depl} --wait --timeout ${HEROKLES_HELM_TIMEOUT:-3m1s}
   echo "Kube deployment removed: $ns:$depl" >> "$SUMMARY"
 }
+
 function cleanAwsDry() {
   echo "Dry run: AWS parameter removed: $ns:$param" >> "$SUMMARY"
 }
+
 function cleanKubeDry() {
   echo "Dry run: Kube deployment removed: $ns:$depl" >> "$SUMMARY"
 }
+
 function cleanRepo {
-  for ns in $NAMESPACES; do
     echo "Project to clean: $ns"
     echo >"$AWS_PARAMS_PATH"
     echo >"$DEPLOYMENTS_PATH"
@@ -64,12 +67,15 @@ function cleanRepo {
       echo "Unistalling pr-$depl in $ns Kube"
       cleanKube$RUN
     done
-  done
 }
+
 function cleanup() {
     rm -f "$AWS_PARAMS_PATH" "$TO_CLOSE_PATH" "$DEPLOYMENTS_PATH" "$SUMMARY"
 }
+
 function main() {
+  trap cleanup EXIT
+  
   RUN=${1:-'Dry'}
   AWS_PARAMS_PATH=$(mktemp)
   DEPLOYMENTS_PATH=$(mktemp)
@@ -99,11 +105,12 @@ function main() {
     exit 1
   }
   echo -e "Kube namespaces:\n$NAMESPACES"
-
-  cleanRepo "$@"
+  
+  for ns in $NAMESPACES; do
+    cleanRepo "$@"
+  done
 
   sort "$SUMMARY" | sort || echo "No deployments in Herokles were closed"
 }
 
-trap cleanup EXIT
 main "$@"
