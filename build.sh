@@ -76,13 +76,6 @@ function main() {
       done
     fi
 
-    for key in $( jq -r 'keys[]' $json ) ; do
-      export $key="$( jq -r .$key $json )"
-    done
-    ./herokles/set-vars-with-overwrite.sh
-    # break here
-    exit 1
-
     # Env vars that get overwritten always
     if [[ -f ./herokles/set-vars-with-overwrite.sh ]] ; then
       # Make current vars available to the hook script
