@@ -76,6 +76,10 @@ function main() {
       done
     fi
 
+    ./herokles/set-vars-with-overwrite.sh
+    # break here
+    exit 1
+
     # Env vars that get overwritten always
     if [[ -f ./herokles/set-vars-with-overwrite.sh ]] ; then
       # Make current vars available to the hook script
