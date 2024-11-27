@@ -61,6 +61,10 @@ function main() {
         cat $update > $json
       fi
     done
+    # Make current vars available to the set-custom-pr-envs.sh script
+    for key in $( jq -r 'keys[]' $json ) ; do
+      export $key="$( jq -r .$key $json )"
+    done
     if [[ -f ./herokles/set-custom-pr-envs.sh ]] ; then
       ./herokles/set-custom-pr-envs.sh \
       | while read line ; do
