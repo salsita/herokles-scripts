@@ -85,6 +85,23 @@ function main() {
     fi
   fi
 
+  # Invoke optional script to process the JSON var object
+  if [[ -f ./herokles/set-vars-hook.sh ]] ; then
+    json_temp=$( mktemp )
+    cp $json $json_temp
+    ./herokles/set-vars-hook.sh $json_temp
+    if jq . < $json_temp >/dev/null 2>&1; then
+      if ! diff -q $json $json_temp; then
+        echo "Uploading new environment variables."
+        cp $json_temp $json
+        aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
+      fi
+    else
+      echo "Invalid JSON, skipping env processing hook output"
+    fi
+    rm -f $json_temp
+  fi
+
   for key in $( jq -r 'keys[]' $json ) ; do
     export $key="$( jq -r .$key $json )"
   done
