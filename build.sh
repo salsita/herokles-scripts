@@ -89,7 +89,7 @@ function main() {
   if [[ -f ./herokles/set-vars-hook.sh ]] ; then
     json_temp=$( mktemp )
     cp $json $json_temp
-    ./herokles/set-vars-with-overwrite.sh $json_temp
+    ./herokles/set-vars-hook.sh $json_temp
     if jq . < $json_temp >/dev/null 2>&1; then
       if diff -q $json $json_temp; then
         echo "Uploading new environment variables."
