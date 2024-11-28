@@ -86,7 +86,7 @@ function main() {
   fi
 
   # Invoke optional script to process the JSON var object
-  if [[ -f ./herokles/set-vars-hook.sh ]] ; then
+  if [[ "${HEROKLES_SKIP_ENV_HOOK:-false}" == "false" ]] && [[ -f ./herokles/set-vars-hook.sh ]] ; then
     json_temp=$( mktemp )
     cp $json $json_temp
     ./herokles/set-vars-hook.sh $json_temp
