@@ -91,7 +91,7 @@ function main() {
     cp $json $json_temp
     ./herokles/set-vars-hook.sh $json_temp
     if jq . < $json_temp >/dev/null 2>&1; then
-      if diff -q $json $json_temp; then
+      if ! diff -q $json $json_temp; then
         echo "Uploading new environment variables."
         cp $json_temp $json
         aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
