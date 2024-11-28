@@ -54,15 +54,13 @@ function main() {
     jq -r '.Parameters | .[] | .Value' $json_template > $update
     cat $update > $json_template
     echo > $update
-    local key val updated
+    local key val
     for key in $( jq -r 'keys[]' $json_template ) ; do
       if [[ $( jq -r .$key $json ) == null ]] ; then
         cat $json | jq ".${key}=\"$( jq -r .$key $json_template )\"" > $update
         cat $update > $json
       fi
     done
-
-    # Env vars that get added only once
     if [[ -f ./herokles/set-custom-pr-envs.sh ]] ; then
       ./herokles/set-custom-pr-envs.sh \
       | while read line ; do
@@ -71,28 +69,10 @@ function main() {
         if [[ $( jq -r .$key $json ) == null ]] ; then
           cat $json | jq ".${key}=\"${val}\"" > $update
           cat $update > $json
-	  updated=true
         fi
       done
     fi
-
-    # Env vars that get overwritten always
-    if [[ -f ./herokles/set-vars-with-overwrite.sh ]] ; then
-      # Make current vars available to the hook script
-      for key in $( jq -r 'keys[]' $json ) ; do
-        export $key="$( jq -r .$key $json )"
-      done
-      ./herokles/set-vars-with-overwrite.sh \
-      | while read line ; do
-        key=$( echo "$line" | cut -d'=' -f1 )
-        val=$( echo "$line" | cut -d'=' -f2- )
-        cat $json | jq ".${key}=\"${val}\"" > $update
-        cat $update > $json
-	updated=true
-      done
-    fi
-
-    if [[ "$updated" == 'true' ]]; then
+    if [[ ! -z $( cat $update ) ]] ; then
       echo "Uploading new environment variables."
       aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
     fi
@@ -103,6 +83,23 @@ function main() {
     else
       jq -r '.Parameters | .[] | .Value' $json_full > $json
     fi
+  fi
+
+  # Invoke optional script to process the JSON var object
+  if [[ -f ./herokles/set-vars-hook.sh ]] ; then
+    json_temp=$( mktemp )
+    cp $json $json_temp
+    ./herokles/set-vars-with-overwrite.sh $json_temp
+    if jq . < $json_temp >/dev/null 2>&1; then
+      if diff -q $json $json_temp; then
+        echo "Uploading new environment variables."
+        cp $json_temp $json
+        aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
+      fi
+    else
+      echo "Invalid JSON, skipping env processing hook output"
+    fi
+    rm -f $json_temp
   fi
 
   for key in $( jq -r 'keys[]' $json ) ; do
