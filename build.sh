@@ -74,7 +74,7 @@ function main() {
     fi
     if [[ ! -z $( cat $update ) ]] ; then
       echo "Uploading new environment variables."
-      aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
+      aws --profile herokles ssm put-parameter --type String --tier Intelligent-Tiering --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
     fi
   else
     if [[ ! -z $( jq -r '.InvalidParameters | .[]' $json_full ) ]] ; then
@@ -94,7 +94,7 @@ function main() {
       if ! diff -q $json $json_temp; then
         echo "Uploading new environment variables."
         cp $json_temp $json
-        aws --profile herokles ssm put-parameter --type String --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
+        aws --profile herokles ssm put-parameter --type String --tier Intelligent-Tiering --name /${PROJECT}/${ENV} --overwrite --value "$( jq -S . $json )"
       fi
     else
       echo "Invalid JSON, skipping env processing hook output"
